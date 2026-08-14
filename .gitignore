@@ -1,0 +1,4 @@
+/target
+/target-*
+/data/mappings/*.json.tmp
+*.log

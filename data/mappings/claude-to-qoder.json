@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "source": "claude-code",
+  "target": "qoder",
+  "entries": [
+    {
+      "source": "instructions",
+      "target": "AGENTS.md",
+      "behavior": "convert",
+      "caveat": null,
+      "status": "exact"
+    },
+    {
+      "source": "mcp",
+      "target": ".mcp.json",
+      "behavior": "copy",
+      "caveat": null,
+      "status": "exact"
+    },
+    {
+      "source": "skills",
+      "target": "skills",
+      "behavior": "convert",
+      "caveat": "skill frontmatter may need review",
+      "status": "partial"
+    },
+    {
+      "source": "agents",
+      "target": "agents",
+      "behavior": "convert",
+      "caveat": "agent format compatibility unverified",
+      "status": "partial"
+    },
+    {
+      "source": "hooks",
+      "target": "",
+      "behavior": "report-only",
+      "caveat": "Qoder hook runtime differs from Claude Code",
+      "status": "unsupported"
+    },
+    {
+      "source": "memory",
+      "target": "",
+      "behavior": "index",
+      "caveat": "read-only index generation",
+      "status": "partial"
+    },
+    {
+      "source": "commands",
+      "target": "skills",
+      "behavior": "convert",
+      "caveat": "slash commands convert to one-file skills",
+      "status": "partial"
+    }
+  ]
+}

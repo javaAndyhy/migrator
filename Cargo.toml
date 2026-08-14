@@ -1,0 +1,20 @@
+[package]
+name = "migrator"
+version = "0.1.0"
+edition = "2024"
+description = "Multi-target agent configuration migrator: Claude Code / Codex -> Qoder / Trae / Lingma etc."
+license = "MIT"
+keywords = ["ai-agent", "migration", "claude-code", "codex", "mcp", "qoder"]
+categories = ["command-line-utilities", "development-tools"]
+repository = "https://github.com/honghuayu/migrator"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+thiserror = "2"
+
+[profile.release]
+strip = true
+lto = true
