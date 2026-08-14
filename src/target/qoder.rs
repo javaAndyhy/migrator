@@ -17,7 +17,8 @@ fn strip_source_prefix(source_path: &str) -> &str {
 
 /// Qoder 目标适配器
 pub struct QoderTarget {
-    /// 用户级配置目录 (~/.qoder)
+    /// 用户级配置目录 (~/.qoder) — 预留：Phase 3 用户级迁移时使用
+    #[allow(dead_code)]
     user_dir: PathBuf,
     /// 项目级配置目录 (./.qoder)
     project_dir: PathBuf,

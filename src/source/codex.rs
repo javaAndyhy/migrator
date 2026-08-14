@@ -5,7 +5,7 @@
 
 use super::SourceAdapter;
 use crate::model::{ConfigSurface, SurfaceKind};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /// Codex 源适配器
 pub struct CodexSource {

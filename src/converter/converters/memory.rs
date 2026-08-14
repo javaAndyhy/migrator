@@ -115,7 +115,7 @@ fn build_entry(
         .unwrap_or(0);
 
     // 预览: 前 N 行 + 字节截断
-    let mut preview_lines: Vec<&str> = content.lines().take(PREVIEW_MAX_LINES).collect();
+    let preview_lines: Vec<&str> = content.lines().take(PREVIEW_MAX_LINES).collect();
     let mut truncated = content.lines().count() > PREVIEW_MAX_LINES;
     let mut preview = preview_lines.join("\n");
     if preview.len() > PREVIEW_MAX_BYTES {
