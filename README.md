@@ -56,6 +56,20 @@ migrator --source codex validate --project .
 
 平台间差异集中在"输出布局"，新增平台只需在 `src/target/layout.rs` 定义一个布局 + 写映射表 JSON。
 
+### 映射表平台化
+
+映射表按 `source × target` 组合独立维护（`data/mappings/<source>-to-<target>.json`），每个平台组合可以有不同的语义判定（如 Trae 无 agents 概念 → `unsupported`；灵码 mcp-settings.json 格式有差异 → `partial`）：
+
+```text
+data/mappings/
+├── claude-to-qoder.json    ← Claude Code → Qoder
+├── claude-to-trae.json     ← Claude Code → Trae (agents: unsupported)
+├── claude-to-lingma.json   ← Claude Code → 通义灵码 (mcp: partial)
+└── codex-to-qoder.json     ← Codex → Qoder (mcp: TOML→JSON)
+```
+
+解析顺序：`--mapping` 显式指定 → 平台默认文件 → 内置映射表（`MappingTable::builtin`）。新增平台组合 = 加一个 JSON 文件，零代码改动。
+
 ### 安全回退链
 
 ```bash

@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "source": "claude-code",
+  "target": "lingma",
+  "entries": [
+    {
+      "source": "instructions",
+      "target": "LINGMA.md",
+      "behavior": "convert",
+      "caveat": null,
+      "status": "exact"
+    },
+    {
+      "source": "mcp",
+      "target": "mcp-settings.json",
+      "behavior": "convert",
+      "caveat": "Lingma mcp-settings.json schema may differ from Claude .mcp.json",
+      "status": "partial"
+    },
+    {
+      "source": "skills",
+      "target": "skills",
+      "behavior": "convert",
+      "caveat": "skill frontmatter may need review",
+      "status": "partial"
+    },
+    {
+      "source": "agents",
+      "target": "agents",
+      "behavior": "convert",
+      "caveat": "Lingma agents use YAML md format, may need review",
+      "status": "partial"
+    },
+    {
+      "source": "hooks",
+      "target": "",
+      "behavior": "report-only",
+      "caveat": "Lingma hook runtime differs from Claude Code",
+      "status": "unsupported"
+    },
+    {
+      "source": "memory",
+      "target": "",
+      "behavior": "index",
+      "caveat": "read-only index generation",
+      "status": "partial"
+    },
+    {
+      "source": "commands",
+      "target": "skills",
+      "behavior": "convert",
+      "caveat": "slash commands convert to one-file skills",
+      "status": "partial"
+    }
+  ]
+}

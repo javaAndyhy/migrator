@@ -76,19 +76,22 @@ pub fn run_migration<T: TargetAdapter>(
             Some(entry) => match entry.status {
                 MappingStatus::Exact => (ReportStatus::Added, entry.behavior.clone()),
                 MappingStatus::Partial => {
-                    if conversion.manual_review_required {
-                        (
-                            ReportStatus::CheckBeforeUsing,
-                            conversion.manual_notes.first().cloned().unwrap_or_else(|| {
-                                entry
-                                    .caveat
-                                    .clone()
-                                    .unwrap_or_else(|| "semantics differ, manual review required".into())
-                            }),
-                        )
+                    // 映射表声明 Partial 即需审查（契约: 不能静默升级为 Added）
+                    // 备注优先用转换器发现的细节，否则用映射表 caveat
+                    let notes = if conversion.manual_review_required {
+                        conversion.manual_notes.first().cloned().unwrap_or_else(|| {
+                            entry
+                                .caveat
+                                .clone()
+                                .unwrap_or_else(|| "semantics differ, manual review required".into())
+                        })
                     } else {
-                        (ReportStatus::Added, entry.behavior.clone())
-                    }
+                        entry
+                            .caveat
+                            .clone()
+                            .unwrap_or_else(|| "semantics differ, manual review required".into())
+                    };
+                    (ReportStatus::CheckBeforeUsing, notes)
                 }
                 MappingStatus::Unsupported => (
                     ReportStatus::NotAdded,

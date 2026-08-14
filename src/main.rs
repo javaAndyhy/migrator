@@ -87,21 +87,52 @@ enum Commands {
     },
 }
 
-/// 加载映射表：优先外部 JSON 文件（--mapping），否则内置默认
-fn load_mapping(mapping_path: Option<&std::path::Path>) -> MappingTable {
-    match mapping_path {
-        Some(path) => match MappingTable::load_from_json(path) {
+/// 加载映射表（平台化）
+///
+/// 解析顺序:
+///   1. --mapping 显式指定 → 加载该文件（失败降级内置默认）
+///   2. data/mappings/<source>-to-<target>.json 存在 → 加载（失败降级内置）
+///   3. 内置映射表 MappingTable::builtin(source, target)
+fn load_mapping(
+    mapping_path: Option<&std::path::Path>,
+    source_name: &str,
+    target_name: &str,
+) -> MappingTable {
+    // CLI 源名 → 映射表源规范名
+    let source_key = if source_name == "codex" { "codex" } else { "claude-code" };
+
+    // 1. 显式 --mapping
+    if let Some(path) = mapping_path {
+        match MappingTable::load_from_json(path) {
             Ok(table) => {
                 println!("[映射表] 已加载: {} → {}", table.source, table.target);
-                table
+                return table;
             }
             Err(e) => {
-                eprintln!("[警告] 映射表加载失败 ({e})，使用内置默认");
-                MappingTable::builtin_claude_to_qoder()
+                eprintln!("[警告] 映射表加载失败 ({e})，尝试平台默认");
             }
-        },
-        None => MappingTable::builtin_claude_to_qoder(),
+        }
     }
+
+    // 2. 平台默认文件: data/mappings/<source>-to-<target>.json
+    let default_file = MappingTable::default_mapping_file(source_name, target_name);
+    if default_file.exists() {
+        match MappingTable::load_from_json(&default_file) {
+            Ok(table) => {
+                println!("[映射表] 已加载: {} → {}", table.source, table.target);
+                return table;
+            }
+            Err(e) => {
+                eprintln!(
+                    "[警告] 映射表 {} 加载失败 ({e})，使用内置默认",
+                    default_file.display()
+                );
+            }
+        }
+    }
+
+    // 3. 内置映射表（平台化选择）
+    MappingTable::builtin(source_key, target_name)
 }
 
 /// 选择源适配器: claude | codex
@@ -124,9 +155,9 @@ fn build_target(target_name: &str, project: &PathBuf) -> Result<LayoutTarget, an
 
 fn main() -> Result<(), anyhow::Error> {
     let cli = Cli::parse();
-    let mapping = load_mapping(cli.mapping.as_deref());
     let source_name = cli.source.clone();
     let target_name = cli.target.clone();
+    let mapping = load_mapping(cli.mapping.as_deref(), &source_name, &target_name);
 
     match cli.command {
         Commands::Scan { project } => {
