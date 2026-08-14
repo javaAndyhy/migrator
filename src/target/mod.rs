@@ -2,13 +2,16 @@
 //!
 //! 每个目标平台实现 TargetAdapter trait
 //! 契约: 写入通过安全写入层（托管块 + 原子写入）
+//! 平台差异 = TargetLayout（布局配置），新增平台只需定义 Layout
 
 use crate::converter::mapping::ConversionResult;
 use std::path::{Path, PathBuf};
 
+pub mod layout;
 pub mod qoder;
 
-pub use qoder::QoderTarget;
+pub use layout::TargetLayout;
+pub use qoder::{LayoutTarget, QoderTarget};
 
 /// 目标写入结果
 #[derive(Debug, Clone)]

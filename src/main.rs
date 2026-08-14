@@ -3,7 +3,7 @@ use migrator::converter::mapping::MappingTable;
 use migrator::model::{MigrationOptions, PlanScope};
 use migrator::pipeline::{dry_run_migration, plan_migration, run_migration, scan_sources, validate_target};
 use migrator::source::{ClaudeCodeSource, CodexSource, SourceAdapter};
-use migrator::target::{QoderTarget, TargetAdapter};
+use migrator::target::{LayoutTarget, TargetAdapter, TargetLayout};
 use std::path::PathBuf;
 
 /// migrator — 多目标 Agent 配置迁移引擎
@@ -16,6 +16,9 @@ struct Cli {
     /// 源平台: claude | codex (默认 claude)
     #[arg(long, global = true, default_value = "claude")]
     source: String,
+    /// 目标平台: qoder | trae | lingma (默认 qoder)
+    #[arg(long, global = true, default_value = "qoder")]
+    target: String,
     #[command(subcommand)]
     command: Commands,
 }
@@ -109,10 +112,21 @@ fn build_source(source_name: &str, project: &PathBuf) -> Box<dyn SourceAdapter> 
     }
 }
 
+/// 选择目标适配器: qoder | trae | lingma
+fn build_target(target_name: &str, project: &PathBuf) -> Result<LayoutTarget, anyhow::Error> {
+    match TargetLayout::by_name(target_name) {
+        Some(layout) => Ok(LayoutTarget::detect(layout, project)),
+        None => Err(anyhow::anyhow!(
+            "未知目标平台: {target_name} (可选: qoder | trae | lingma)"
+        )),
+    }
+}
+
 fn main() -> Result<(), anyhow::Error> {
     let cli = Cli::parse();
     let mapping = load_mapping(cli.mapping.as_deref());
     let source_name = cli.source.clone();
+    let target_name = cli.target.clone();
 
     match cli.command {
         Commands::Scan { project } => {
@@ -143,7 +157,7 @@ fn main() -> Result<(), anyhow::Error> {
         Commands::DryRun { project } => {
             let source = build_source(&source_name, &project);
             let surfaces = scan_sources(&*source);
-            let target = QoderTarget::detect(&project);
+            let target = build_target(&target_name, &project)?;
             let options = MigrationOptions {
                 scope: PlanScope::ProjectShared,
                 confirm_write: false,
@@ -160,7 +174,7 @@ fn main() -> Result<(), anyhow::Error> {
             }
             let source = build_source(&source_name, &project);
             let surfaces = scan_sources(&*source);
-            let target = QoderTarget::detect(&project);
+            let target = build_target(&target_name, &project)?;
             let options = MigrationOptions {
                 scope: PlanScope::ProjectShared,
                 confirm_write: true,
@@ -185,7 +199,7 @@ fn main() -> Result<(), anyhow::Error> {
         Commands::Validate { project } => {
             let source = build_source(&source_name, &project);
             let surfaces = scan_sources(&*source);
-            let target = QoderTarget::detect(&project);
+            let target = build_target(&target_name, &project)?;
             let reports = validate_target(&target, &surfaces);
             print_reports(&reports, "validate");
         }

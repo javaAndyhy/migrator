@@ -1,10 +1,11 @@
-//! Qoder 目标适配器 — 写入 Qoder CLI 配置
+//! 布局驱动目标适配器 — 写入目标平台配置
 //!
-//! Qoder 与 Claude Code MCP 格式完全兼容（官方迁移工具验证）
-//! 指令文件: CLAUDE.md → AGENTS.md（Qoder 读 AGENTS.md）
+//! 平台差异 = TargetLayout（instructions 文件名 / MCP 路径 / 配置根目录）
+//! 新增平台 = 在 layout.rs 定义一个新 Layout，无需改转换逻辑
 
 use super::{TargetAdapter, TargetWriteResult};
 use crate::converter::mapping::ConversionResult;
+use crate::target::layout::TargetLayout;
 use std::path::{Path, PathBuf};
 
 /// 去掉源平台路径前缀（.claude/ 或 ~/.codex/），返回相对路径
@@ -15,31 +16,31 @@ fn strip_source_prefix(source_path: &str) -> &str {
         .trim_start_matches("~/.claude/")
 }
 
-/// Qoder 目标适配器
-pub struct QoderTarget {
-    /// 用户级配置目录 (~/.qoder) — 预留：Phase 3 用户级迁移时使用
-    #[allow(dead_code)]
+/// 通用布局驱动目标适配器
+pub struct LayoutTarget {
+    /// 目标平台布局
+    layout: TargetLayout,
+    /// 用户级配置目录
     user_dir: PathBuf,
-    /// 项目级配置目录 (./.qoder)
+    /// 项目级配置目录
     project_dir: PathBuf,
 }
 
-impl QoderTarget {
-    pub fn new(user_dir: impl Into<PathBuf>, project_dir: impl Into<PathBuf>) -> Self {
+impl LayoutTarget {
+    pub fn new(layout: TargetLayout, user_dir: impl Into<PathBuf>, project_dir: impl Into<PathBuf>) -> Self {
         Self {
+            layout,
             user_dir: user_dir.into(),
             project_dir: project_dir.into(),
         }
     }
 
-    /// 从当前目录探测 .qoder 位置
-    pub fn detect(current_dir: &Path) -> Self {
-        let home = std::env::var("HOME")
-            .or_else(|_| std::env::var("USERPROFILE"))
-            .unwrap_or_else(|_| ".".into());
+    /// 从当前目录按布局探测目标位置
+    pub fn detect(layout: TargetLayout, current_dir: &Path) -> Self {
         Self::new(
-            PathBuf::from(home).join(".qoder"),
-            current_dir.join(".qoder"),
+            layout.clone(),
+            layout.user_root(),
+            layout.project_root(current_dir),
         )
     }
 
@@ -51,36 +52,46 @@ impl QoderTarget {
     }
 }
 
-impl TargetAdapter for QoderTarget {
+/// Qoder 目标适配器（便捷别名，向后兼容）
+pub type QoderTarget = LayoutTarget;
+
+impl QoderTarget {
+    pub fn qoder_new(user_dir: impl Into<PathBuf>, project_dir: impl Into<PathBuf>) -> Self {
+        Self::new(TargetLayout::qoder(), user_dir, project_dir)
+    }
+
+    pub fn qoder_detect(current_dir: &Path) -> Self {
+        Self::detect(TargetLayout::qoder(), current_dir)
+    }
+}
+
+impl TargetAdapter for LayoutTarget {
     fn name(&self) -> &'static str {
-        "qoder"
+        self.layout.name
     }
 
     fn target_path(&self, source_path: &str) -> PathBuf {
-        // 去掉源平台路径前缀（.claude/ 或 ~/.codex/），得到相对路径
         let rel = strip_source_prefix(source_path);
+        let root = &self.project_dir;
 
-        // 按配置类型推导目标路径
         if source_path.ends_with("CLAUDE.md") || source_path.ends_with("AGENTS.md") {
-            // 指令文件统一输出到 AGENTS.md
-            self.project_dir.join("AGENTS.md")
+            // 指令文件 → 平台自己的文件名（AGENTS.md / LINGMA.md）
+            root.join(self.layout.instructions_file)
         } else if source_path.contains(".mcp.json")
             || source_path.contains("config.toml")
             || source_path.contains("mcp")
         {
-            // MCP 配置统一输出到 .mcp.json
-            self.project_dir.join(".mcp.json")
+            // MCP 配置 → 平台自己的 MCP 文件
+            root.join(self.layout.mcp_file)
         } else if let Some(rest) = rel.strip_prefix("skills/") {
-            // skills/<name>/SKILL.md -> .qoder/skills/<name>/SKILL.md
-            self.project_dir.join("skills").join(rest)
+            root.join(self.layout.skills_dir).join(rest)
         } else if let Some(rest) = rel.strip_prefix("agents/") {
-            // agents/<name>.toml -> .qoder/agents/<name>.toml
-            self.project_dir.join("agents").join(rest)
+            root.join(self.layout.agents_dir).join(rest)
         } else if rel.contains("memor") {
-            // memory/memories 索引输出到 .qoder/claude-memory-index/
-            self.project_dir.join("claude-memory-index").join("README.md")
+            // memory 索引输出到 <root>/<memory_dir>/README.md
+            root.join(self.layout.memory_dir).join("README.md")
         } else {
-            self.project_dir.join(rel)
+            root.join(rel)
         }
     }
 
@@ -100,14 +111,17 @@ mod tests {
     use super::*;
     use std::fs;
 
+    fn qoder_target() -> LayoutTarget {
+        LayoutTarget::new(TargetLayout::qoder(), "~/.qoder", "./.qoder")
+    }
+
     #[test]
-    fn target_path_for_instructions() {
-        let t = QoderTarget::new("~/.qoder", "./.qoder");
+    fn qoder_target_path_for_instructions() {
+        let t = qoder_target();
         assert_eq!(
             t.target_path(".claude/CLAUDE.md"),
             PathBuf::from("./.qoder/AGENTS.md")
         );
-        // codex 源的 AGENTS.md 也统一输出到目标 AGENTS.md
         assert_eq!(
             t.target_path("~/.codex/AGENTS.md"),
             PathBuf::from("./.qoder/AGENTS.md")
@@ -115,8 +129,8 @@ mod tests {
     }
 
     #[test]
-    fn target_path_for_skill_file() {
-        let t = QoderTarget::new("~/.qoder", "./.qoder");
+    fn qoder_target_path_for_skill_file() {
+        let t = qoder_target();
         assert_eq!(
             t.target_path(".claude/skills/my-skill/SKILL.md"),
             PathBuf::from("./.qoder/skills/my-skill/SKILL.md")
@@ -124,8 +138,8 @@ mod tests {
     }
 
     #[test]
-    fn target_path_for_agent_file() {
-        let t = QoderTarget::new("~/.qoder", "./.qoder");
+    fn qoder_target_path_for_agent_file() {
+        let t = qoder_target();
         assert_eq!(
             t.target_path(".claude/agents/release-lead.md"),
             PathBuf::from("./.qoder/agents/release-lead.md")
@@ -133,24 +147,20 @@ mod tests {
     }
 
     #[test]
-    fn target_path_for_codex_sources() {
-        let t = QoderTarget::new("~/.qoder", "./.qoder");
-        // codex skills
+    fn qoder_target_path_for_codex_sources() {
+        let t = qoder_target();
         assert_eq!(
             t.target_path("~/.codex/skills/mtkf-coder/SKILL.md"),
             PathBuf::from("./.qoder/skills/mtkf-coder/SKILL.md")
         );
-        // codex agents (toml)
         assert_eq!(
             t.target_path("~/.codex/agents/mtkf-coder.toml"),
             PathBuf::from("./.qoder/agents/mtkf-coder.toml")
         );
-        // codex mcp (config.toml)
         assert_eq!(
             t.target_path("~/.codex/config.toml ([mcp_servers])"),
             PathBuf::from("./.qoder/.mcp.json")
         );
-        // codex memory
         assert_eq!(
             t.target_path("~/.codex/memories/"),
             PathBuf::from("./.qoder/claude-memory-index/README.md")
@@ -158,10 +168,50 @@ mod tests {
     }
 
     #[test]
+    fn trae_target_paths() {
+        let t = LayoutTarget::new(TargetLayout::trae(), "~/.trae", "./.trae");
+        // instructions → AGENTS.md
+        assert_eq!(
+            t.target_path(".claude/CLAUDE.md"),
+            PathBuf::from("./.trae/AGENTS.md")
+        );
+        // mcp → .trae/mcp.json
+        assert_eq!(
+            t.target_path("~/.codex/config.toml ([mcp_servers])"),
+            PathBuf::from("./.trae/mcp.json")
+        );
+        // skills → .trae/skills/
+        assert_eq!(
+            t.target_path("~/.codex/skills/foo/SKILL.md"),
+            PathBuf::from("./.trae/skills/foo/SKILL.md")
+        );
+    }
+
+    #[test]
+    fn lingma_target_paths() {
+        let t = LayoutTarget::new(TargetLayout::lingma(), "~/.lingma", "./.lingma");
+        // instructions → LINGMA.md（灵码特有）
+        assert_eq!(
+            t.target_path(".claude/CLAUDE.md"),
+            PathBuf::from("./.lingma/LINGMA.md")
+        );
+        // mcp → .lingma/mcp-settings.json
+        assert_eq!(
+            t.target_path("~/.codex/config.toml ([mcp_servers])"),
+            PathBuf::from("./.lingma/mcp-settings.json")
+        );
+        // agents → .lingma/agents/
+        assert_eq!(
+            t.target_path("~/.codex/agents/mtkf-coder.toml"),
+            PathBuf::from("./.lingma/agents/mtkf-coder.toml")
+        );
+    }
+
+    #[test]
     fn write_creates_file_with_content() {
         let dir = std::env::temp_dir().join(format!("migrator-tgt-{}", std::process::id()));
-        let t = QoderTarget::new(dir.join("home"), dir.join("proj"));
-        let path = t.target_path("instructions");
+        let t = LayoutTarget::new(TargetLayout::qoder(), dir.join("home"), dir.join("proj"));
+        let path = t.target_path(".claude/CLAUDE.md");
         let result = ConversionResult {
             content: "synced".into(),
             manual_review_required: false,
@@ -170,27 +220,6 @@ mod tests {
         let wr = t.write(&path, &result).unwrap();
         assert!(wr.created);
         assert_eq!(fs::read_to_string(&path).unwrap(), "synced");
-        fs::remove_dir_all(&dir).unwrap();
-    }
-}
-
-#[cfg(test)]
-mod extra_tests {
-    use super::*;
-    use std::fs;
-
-    #[test]
-    fn write_different_dirs_no_interference() {
-        let dir = std::env::temp_dir().join(format!("migrator-tgt2-{}", std::process::id()));
-        let t = QoderTarget::new(dir.join("home"), dir.join("proj"));
-        let path = t.target_path("instructions");
-        let result = ConversionResult {
-            content: "other".into(),
-            manual_review_required: false,
-            manual_notes: vec![],
-        };
-        t.write(&path, &result).unwrap();
-        assert_eq!(fs::read_to_string(&path).unwrap(), "other");
         fs::remove_dir_all(&dir).unwrap();
     }
 }

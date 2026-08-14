@@ -37,11 +37,24 @@ migrator --source codex plan --project .
 migrator --source codex dry-run --project .
 
 # 执行迁移（必须显式 --yes，契约: 默认只读）
-migrator --source codex apply --project . --yes
+# 目标平台: qoder | trae | lingma (默认 qoder)
+migrator --source codex --target qoder apply --project . --yes
+migrator --source claude --target trae apply --project . --yes
+migrator --source codex --target lingma apply --project . --yes
 
 # 校验目标
 migrator --source codex validate --project .
 ```
+
+### 目标平台差异
+
+| 平台 | 指令文件 | MCP 配置 | 配置根目录 |
+|---|---|---|---|
+| Qoder | `AGENTS.md` | `.mcp.json` | `.qoder/` |
+| Trae | `AGENTS.md` | `mcp.json` | `.trae/` |
+| 通义灵码 | `LINGMA.md` | `mcp-settings.json` | `.lingma/` |
+
+平台间差异集中在"输出布局"，新增平台只需在 `src/target/layout.rs` 定义一个布局 + 写映射表 JSON。
 
 ### 安全回退链
 
