@@ -46,7 +46,14 @@ pub fn convert_codex_mcp(config_toml: &str) -> (String, bool, Vec<String>) {
                 } else if let Some(v) = parse_key_value(l, "url") {
                     server["url"] = json!(v);
                 } else if let Some(v) = parse_key_value(l, "bearer_token_env_var") {
+                    // Codex 特有 → 标准 MCP headers（Claude/Qoder 兼容）
+                    server["headers"] = json!({
+                        "Authorization": format!("Bearer {{env:{v}}}")
+                    });
                     server["bearer_token_env_var"] = json!(v);
+                    manual_notes.push(format!(
+                        "mcp server {name}: bearer_token_env_var -> Authorization header (review)"
+                    ));
                 } else if l.starts_with("enabled") && !l.contains("true") {
                     manual_notes.push(format!("mcp server {name}: disabled, skipped"));
                 }
@@ -62,13 +69,31 @@ pub fn convert_codex_mcp(config_toml: &str) -> (String, bool, Vec<String>) {
                 ));
             }
 
-            // Codex 特有字段降级提示
+            // Codex env_vars → 标准 MCP env 对象（{env:VAR} 引用，Claude/Qoder 兼容）
             if !env_vars.is_empty() {
+                let mut env_map = serde_json::Map::new();
+                for var in &env_vars {
+                    env_map.insert(
+                        var.clone(),
+                        json!(format!("{{env:{var}}}")),
+                    );
+                }
+                // 若已有嵌套 env 合并进来，则追加
+                if let Some(existing) = server["env"].as_object_mut() {
+                    for (k, v) in env_map {
+                        existing.entry(k).or_insert(v);
+                    }
+                } else {
+                    server["env"] = json!(env_map);
+                }
                 manual_notes.push(format!(
-                    "mcp server {name}: env_vars {:?} not mapped (Codex-specific, review)",
+                    "mcp server {name}: env_vars {:?} -> env object ({{env:VAR}} refs, review)",
                     env_vars
                 ));
-                server["env_vars"] = json!(env_vars);
+            }
+            // Codex 特有字段不再原样输出（避免目标平台 schema 校验失败）
+            if server.get("bearer_token_env_var").is_some() {
+                server.as_object_mut().unwrap().remove("bearer_token_env_var");
             }
             if server.get("tools").is_some() {
                 manual_notes.push(format!("mcp server {name}: nested tools config dropped"));
@@ -212,11 +237,15 @@ approval_mode = "approve"
 url = "https://api.githubcopilot.com/mcp/"
 bearer_token_env_var = "GITHUB_PERSONAL_ACCESS_TOKEN"
 "#;
-        let (out, _, _) = convert_codex_mcp(toml);
+        let (out, needs_review, _) = convert_codex_mcp(toml);
         assert!(out.contains("\"url\""));
         assert!(out.contains("api.githubcopilot.com"));
-        assert!(out.contains("bearer_token_env_var"));
-        assert!(out.contains("GITHUB_PERSONAL_ACCESS_TOKEN"));
+        // bearer_token_env_var → Authorization header
+        assert!(out.contains("\"headers\""));
+        assert!(out.contains("Bearer {env:GITHUB_PERSONAL_ACCESS_TOKEN}"));
+        // Codex 特有字段不再原样输出
+        assert!(!out.contains("\"bearer_token_env_var\""));
+        assert!(needs_review);
     }
 
     #[test]
@@ -232,9 +261,14 @@ bearer_token_env_var = "GITHUB_PERSONAL_ACCESS_TOKEN"
 command = "start.ps1"
 env_vars = ["DB_URL"]
 "#;
-        let (_, needs_review, notes) = convert_codex_mcp(toml);
+        let (out, needs_review, notes) = convert_codex_mcp(toml);
         assert!(needs_review);
         assert!(notes.iter().any(|n| n.contains("env_vars")));
+        // env_vars 转为标准 env 对象（{env:VAR} 引用）
+        assert!(out.contains("\"env\""));
+        assert!(out.contains("{env:DB_URL}"));
+        // Codex 特有字段不再原样输出
+        assert!(!out.contains("\"env_vars\""));
     }
 
     #[test]

@@ -87,7 +87,13 @@ impl TargetAdapter for LayoutTarget {
         } else if let Some(rest) = rel.strip_prefix("skills/") {
             root.join(self.layout.skills_dir).join(rest)
         } else if let Some(rest) = rel.strip_prefix("agents/") {
-            root.join(self.layout.agents_dir).join(rest)
+            // agents: Qoder subagent 必须是 .md + YAML frontmatter
+            // 源可能是 .toml（Codex）或 .md（Claude），统一输出 .md
+            let name = std::path::Path::new(rest)
+                .file_stem()
+                .map(|s| s.to_string_lossy().to_string())
+                .unwrap_or_else(|| rest.to_string());
+            root.join(self.layout.agents_dir).join(format!("{name}.md"))
         } else if rel.contains("memor") {
             // memory 索引输出到 <root>/<memory_dir>/README.md
             root.join(self.layout.memory_dir).join("README.md")
@@ -156,7 +162,11 @@ mod tests {
         );
         assert_eq!(
             t.target_path("~/.codex/agents/mtkf-coder.toml"),
-            PathBuf::from("./.qoder/agents/mtkf-coder.toml")
+            PathBuf::from("./.qoder/agents/mtkf-coder.md")
+        );
+        assert_eq!(
+            t.target_path(".claude/agents/release-lead.md"),
+            PathBuf::from("./.qoder/agents/release-lead.md")
         );
         assert_eq!(
             t.target_path("~/.codex/config.toml ([mcp_servers])"),
@@ -201,10 +211,10 @@ mod tests {
             t.target_path("~/.codex/config.toml ([mcp_servers])"),
             PathBuf::from("./.lingma/mcp-settings.json")
         );
-        // agents → .lingma/agents/
+        // agents → .lingma/agents/ (YAML md 格式，统一 .md)
         assert_eq!(
             t.target_path("~/.codex/agents/mtkf-coder.toml"),
-            PathBuf::from("./.lingma/agents/mtkf-coder.toml")
+            PathBuf::from("./.lingma/agents/mtkf-coder.md")
         );
     }
 
