@@ -86,8 +86,15 @@ impl TargetLayout {
     }
 
     /// 项目配置根目录
+    ///
+    /// 若 current_dir 本身就是配置根（如 --project 直接指向 ~/.qoder 的用户级迁移），
+    /// 则不二次拼接配置目录名。
     pub fn project_root(&self, current_dir: &std::path::Path) -> PathBuf {
-        current_dir.join(self.project_dir_name)
+        if current_dir.file_name() == Some(std::ffi::OsStr::new(self.project_dir_name)) {
+            current_dir.to_path_buf()
+        } else {
+            current_dir.join(self.project_dir_name)
+        }
     }
 
     /// 用户配置根目录
@@ -119,5 +126,28 @@ mod tests {
     #[test]
     fn trae_mcp_path() {
         assert_eq!(TargetLayout::trae().mcp_file, "mcp.json");
+    }
+
+    #[test]
+    fn project_root_avoids_double_nesting() {
+        use std::path::Path;
+        // 项目级: --project 项目根 → 拼接配置目录
+        let proj = Path::new("C:/work/myapp");
+        assert_eq!(
+            TargetLayout::qoder().project_root(proj),
+            PathBuf::from("C:/work/myapp/.qoder")
+        );
+        // 用户级: --project 直接指向配置根 (~/.qoder) → 不二次拼接
+        let config_root = Path::new("C:/Users/me/.qoder");
+        assert_eq!(
+            TargetLayout::qoder().project_root(config_root),
+            PathBuf::from("C:/Users/me/.qoder")
+        );
+        // 其他平台同理
+        let lingma_root = Path::new("C:/Users/me/.lingma");
+        assert_eq!(
+            TargetLayout::lingma().project_root(lingma_root),
+            PathBuf::from("C:/Users/me/.lingma")
+        );
     }
 }
