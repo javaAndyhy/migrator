@@ -5,6 +5,9 @@
 
 [![Rust](https://img.shields.io/badge/Rust-1.97+-orange.svg)](https://www.rust-lang.org)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/javaAndyhy/migrator)](https://github.com/javaAndyhy/migrator/releases)
+
+**中文** | [English](README.en.md)
 
 ---
 
@@ -65,7 +68,9 @@ data/mappings/
 ├── claude-to-qoder.json    ← Claude Code → Qoder
 ├── claude-to-trae.json     ← Claude Code → Trae (agents: unsupported)
 ├── claude-to-lingma.json   ← Claude Code → 通义灵码 (mcp: partial)
-└── codex-to-qoder.json     ← Codex → Qoder (mcp: TOML→JSON)
+├── codex-to-qoder.json     ← Codex → Qoder (mcp: TOML→JSON)
+├── codex-to-trae.json      ← Codex → Trae (agents: unsupported)
+└── codex-to-lingma.json    ← Codex → 通义灵码 (mcp: partial)
 ```
 
 解析顺序：`--mapping` 显式指定 → 平台默认文件 → 内置映射表（`MappingTable::builtin`）。新增平台组合 = 加一个 JSON 文件，零代码改动。
@@ -100,7 +105,7 @@ Source Adapter → 转换引擎(映射表驱动) → Target Adapter → 安全�
 **四层承重管线**（经 keel 架构评审）：
 1. **Source Adapter** — 读取源平台配置（只读契约）：`claude` / `codex`
 2. **转换引擎** — 映射表驱动，语义降级 → `MANUAL MIGRATION REQUIRED` 块
-3. **Target Adapter** — 生成目标平台格式：`qoder`（MCP 格式兼容）
+3. **Target Adapter** — 生成目标平台格式：`qoder` / `trae` / `lingma`
 4. **安全写入层** — 托管块 v1、原子写入、备份/restore/clean、幂等
 
 ### 五安全契约（v1 冻结）
@@ -185,7 +190,7 @@ migrator --mapping data/mappings/claude-to-qoder.json apply --project . --yes
 cargo build
 ```
 
-测试：**62 个单元测试**（托管块 / 原子写入 / 备份回退 / 映射表 / 各转换器 / 双源适配器）。
+测试：**70 个单元测试**（托管块 / 原子写入 / 备份回退 / 映射表 / 各转换器 / 双源适配器），0 警告。
 
 ---
 
@@ -194,9 +199,10 @@ cargo build
 - [x] Phase 1: 四层管线骨架 + 托管块 v1 + 原子写入 + 映射表 schema v1
 - [x] Phase 2: 语义降级 + MANUAL 块 / 备份回退链 / 映射表 JSON 化 / 记忆只读索引
 - [x] 真实环境验证: Codex 源（45 skills + 9 agents + 10 MCP 全链路）
-- [ ] Phase 3: Trae / 灵码 / MarsCode 目标适配器
+- [x] Phase 3: 多目标适配器（Qoder / Trae / 灵码）+ 平台化映射表
 - [ ] 双向迁移（国产 → Claude/Codex）
 - [ ] 会话历史迁移
+- [ ] GitHub Actions CI（多平台 release 构建）
 
 ## License
 
