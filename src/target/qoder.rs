@@ -20,7 +20,8 @@ fn strip_source_prefix(source_path: &str) -> &str {
 pub struct LayoutTarget {
     /// 目标平台布局
     layout: TargetLayout,
-    /// 用户级配置目录
+    /// 用户级配置目录（预留: 用户级迁移使用，当前仅项目级写入）
+    #[allow(dead_code)]
     user_dir: PathBuf,
     /// 项目级配置目录
     project_dir: PathBuf,

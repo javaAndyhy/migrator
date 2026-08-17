@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "source": "codex",
+  "target": "lingma",
+  "entries": [
+    {
+      "source": "instructions",
+      "target": "LINGMA.md",
+      "behavior": "convert",
+      "caveat": null,
+      "status": "exact"
+    },
+    {
+      "source": "mcp",
+      "target": "mcp-settings.json",
+      "behavior": "convert",
+      "caveat": "TOML [mcp_servers] to JSON mcpServers; Lingma schema may differ",
+      "status": "partial"
+    },
+    {
+      "source": "skills",
+      "target": "skills",
+      "behavior": "convert",
+      "caveat": "skill frontmatter may need review",
+      "status": "partial"
+    },
+    {
+      "source": "agents",
+      "target": "agents",
+      "behavior": "convert",
+      "caveat": "Codex agents are TOML, Lingma agents use YAML md; needs review",
+      "status": "partial"
+    },
+    {
+      "source": "hooks",
+      "target": "",
+      "behavior": "report-only",
+      "caveat": "Codex hooks (hooks.json) differ from Lingma hook runtime",
+      "status": "unsupported"
+    },
+    {
+      "source": "memory",
+      "target": "",
+      "behavior": "index",
+      "caveat": "read-only index generation",
+      "status": "partial"
+    },
+    {
+      "source": "commands",
+      "target": "skills",
+      "behavior": "convert",
+      "caveat": "slash commands convert to one-file skills",
+      "status": "partial"
+    }
+  ]
+}

@@ -273,6 +273,92 @@ impl MappingTable {
         table
     }
 
+    /// 内置映射表（codex → trae）
+    ///
+    /// 差异: Trae 无子 agent 概念 → agents Unsupported
+    pub fn builtin_codex_to_trae() -> Self {
+        let mut table = Self::new("codex", "trae");
+        table.add_entry(MappingEntry {
+            source: "instructions".into(),
+            target: "AGENTS.md".into(),
+            behavior: "convert".into(),
+            caveat: None,
+            status: MappingStatus::Exact,
+        });
+        table.add_entry(MappingEntry {
+            source: "mcp".into(),
+            target: "mcp.json".into(),
+            behavior: "convert".into(),
+            caveat: Some("TOML [mcp_servers] to JSON mcpServers; nested env merged".into()),
+            status: MappingStatus::Partial,
+        });
+        table.add_entry(MappingEntry {
+            source: "skills".into(),
+            target: "skills".into(),
+            behavior: "convert".into(),
+            caveat: Some("skill frontmatter may need review".into()),
+            status: MappingStatus::Partial,
+        });
+        table.add_entry(MappingEntry {
+            source: "agents".into(),
+            target: "".into(),
+            behavior: "report-only".into(),
+            caveat: Some("Trae has no sub-agent concept; merge into AGENTS.md".into()),
+            status: MappingStatus::Unsupported,
+        });
+        table.add_entry(MappingEntry {
+            source: "memory".into(),
+            target: "claude-memory-index".into(),
+            behavior: "index".into(),
+            caveat: Some("read-only index generation".into()),
+            status: MappingStatus::Partial,
+        });
+        table
+    }
+
+    /// 内置映射表（codex → lingma）
+    ///
+    /// 差异: 指令文件 LINGMA.md; mcp-settings.json 格式有差异
+    pub fn builtin_codex_to_lingma() -> Self {
+        let mut table = Self::new("codex", "lingma");
+        table.add_entry(MappingEntry {
+            source: "instructions".into(),
+            target: "LINGMA.md".into(),
+            behavior: "convert".into(),
+            caveat: None,
+            status: MappingStatus::Exact,
+        });
+        table.add_entry(MappingEntry {
+            source: "mcp".into(),
+            target: "mcp-settings.json".into(),
+            behavior: "convert".into(),
+            caveat: Some("TOML [mcp_servers] to JSON mcpServers; Lingma schema may differ".into()),
+            status: MappingStatus::Partial,
+        });
+        table.add_entry(MappingEntry {
+            source: "skills".into(),
+            target: "skills".into(),
+            behavior: "convert".into(),
+            caveat: Some("skill frontmatter may need review".into()),
+            status: MappingStatus::Partial,
+        });
+        table.add_entry(MappingEntry {
+            source: "agents".into(),
+            target: "agents".into(),
+            behavior: "convert".into(),
+            caveat: Some("Codex agents are TOML, Lingma agents use YAML md; needs review".into()),
+            status: MappingStatus::Partial,
+        });
+        table.add_entry(MappingEntry {
+            source: "memory".into(),
+            target: "claude-memory-index".into(),
+            behavior: "index".into(),
+            caveat: Some("read-only index generation".into()),
+            status: MappingStatus::Partial,
+        });
+        table
+    }
+
     /// 按 source×target 组合选择内置映射表（平台化）
     ///
     /// 未知组合回退到 claude-code → qoder。
@@ -281,6 +367,8 @@ impl MappingTable {
             ("claude-code", "trae") => Self::builtin_claude_to_trae(),
             ("claude-code", "lingma") => Self::builtin_claude_to_lingma(),
             ("codex", "qoder") => Self::builtin_codex_to_qoder(),
+            ("codex", "trae") => Self::builtin_codex_to_trae(),
+            ("codex", "lingma") => Self::builtin_codex_to_lingma(),
             _ => Self::builtin_claude_to_qoder(),
         }
     }
@@ -444,8 +532,36 @@ mod tests {
     }
 
     #[test]
+    fn builtin_covers_all_codex_combos() {
+        // codex→trae: agents unsupported
+        let codex_trae = MappingTable::builtin("codex", "trae");
+        assert_eq!(codex_trae.target, "trae");
+        assert_eq!(
+            codex_trae.find("agents").unwrap().status,
+            MappingStatus::Unsupported
+        );
+        assert_eq!(
+            codex_trae.find("mcp").unwrap().status,
+            MappingStatus::Partial
+        );
+
+        // codex→lingma: instructions 输出 LINGMA.md
+        let codex_lingma = MappingTable::builtin("codex", "lingma");
+        assert_eq!(codex_lingma.target, "lingma");
+        assert_eq!(
+            codex_lingma.find("instructions").unwrap().target,
+            "LINGMA.md"
+        );
+        assert_eq!(
+            codex_lingma.find("mcp").unwrap().status,
+            MappingStatus::Partial
+        );
+    }
+
+    #[test]
     fn builtin_falls_back_to_claude_qoder() {
-        let unknown = MappingTable::builtin("codex", "trae");
+        // 未定义组合（如 claude→cursor）回退 claude→qoder
+        let unknown = MappingTable::builtin("claude-code", "cursor");
         assert_eq!(unknown.source, "claude-code");
         assert_eq!(unknown.target, "qoder");
         assert_eq!(unknown.entries.len(), 5);

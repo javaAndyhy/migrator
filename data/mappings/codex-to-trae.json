@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "source": "codex",
+  "target": "trae",
+  "entries": [
+    {
+      "source": "instructions",
+      "target": "AGENTS.md",
+      "behavior": "convert",
+      "caveat": null,
+      "status": "exact"
+    },
+    {
+      "source": "mcp",
+      "target": "mcp.json",
+      "behavior": "convert",
+      "caveat": "TOML [mcp_servers] to JSON mcpServers; nested env merged",
+      "status": "partial"
+    },
+    {
+      "source": "skills",
+      "target": "skills",
+      "behavior": "convert",
+      "caveat": "skill frontmatter may need review",
+      "status": "partial"
+    },
+    {
+      "source": "agents",
+      "target": "",
+      "behavior": "report-only",
+      "caveat": "Trae has no sub-agent concept; merge into AGENTS.md",
+      "status": "unsupported"
+    },
+    {
+      "source": "hooks",
+      "target": "",
+      "behavior": "report-only",
+      "caveat": "Codex hooks (hooks.json) differ from Trae hook runtime",
+      "status": "unsupported"
+    },
+    {
+      "source": "memory",
+      "target": "",
+      "behavior": "index",
+      "caveat": "read-only index generation",
+      "status": "partial"
+    },
+    {
+      "source": "commands",
+      "target": "skills",
+      "behavior": "convert",
+      "caveat": "slash commands convert to one-file skills",
+      "status": "partial"
+    }
+  ]
+}
