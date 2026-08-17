@@ -75,12 +75,34 @@ impl TargetLayout {
         }
     }
 
+    /// WorkBuddy 布局（腾讯 AI 编程产品）
+    ///
+    /// 实测 ~/.workbuddy 结构:
+    ///   - .mcp.json: MCP 配置（mcpServers 字段，Claude 兼容 + type 扩展）
+    ///   - skills/: 用户级技能（标准 SKILL.md）
+    ///   - MEMORY.md: 用户级记忆（跨项目）
+    ///   - 无文件级 subagent（Expert 是市场概念）→ agents 标记 Unsupported
+    ///   - 项目级配置根: {project}/.workbuddy/
+    pub fn workbuddy() -> Self {
+        Self {
+            name: "workbuddy",
+            project_dir_name: ".workbuddy",
+            user_dir_name: "~/.workbuddy",
+            instructions_file: "MEMORY.md",
+            mcp_file: ".mcp.json",
+            skills_dir: "skills",
+            agents_dir: "agents",
+            memory_dir: "memory-index",
+        }
+    }
+
     /// 按名称选择布局
     pub fn by_name(name: &str) -> Option<Self> {
         match name {
             "qoder" => Some(Self::qoder()),
             "trae" => Some(Self::trae()),
             "lingma" => Some(Self::lingma()),
+            "workbuddy" => Some(Self::workbuddy()),
             _ => None,
         }
     }
@@ -115,7 +137,17 @@ mod tests {
         assert!(TargetLayout::by_name("qoder").is_some());
         assert!(TargetLayout::by_name("trae").is_some());
         assert!(TargetLayout::by_name("lingma").is_some());
+        assert!(TargetLayout::by_name("workbuddy").is_some());
         assert!(TargetLayout::by_name("unknown").is_none());
+    }
+
+    #[test]
+    fn workbuddy_layout() {
+        let wb = TargetLayout::workbuddy();
+        assert_eq!(wb.name, "workbuddy");
+        assert_eq!(wb.mcp_file, ".mcp.json");
+        assert_eq!(wb.skills_dir, "skills");
+        assert_eq!(wb.instructions_file, "MEMORY.md");
     }
 
     #[test]

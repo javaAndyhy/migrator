@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "source": "claude-code",
+  "target": "workbuddy",
+  "entries": [
+    {
+      "source": "instructions",
+      "target": "MEMORY.md",
+      "behavior": "append-managed",
+      "caveat": "appended to user memory as managed block; review",
+      "status": "partial"
+    },
+    {
+      "source": "mcp",
+      "target": ".mcp.json",
+      "behavior": "copy",
+      "caveat": "Claude .mcp.json format compatible with WorkBuddy; merged preserving existing servers",
+      "status": "partial"
+    },
+    {
+      "source": "skills",
+      "target": "skills",
+      "behavior": "convert",
+      "caveat": "SKILL.md format compatible; frontmatter may need review",
+      "status": "partial"
+    },
+    {
+      "source": "agents",
+      "target": "",
+      "behavior": "report-only",
+      "caveat": "WorkBuddy has no file-based subagents (Expert is a marketplace concept)",
+      "status": "unsupported"
+    },
+    {
+      "source": "hooks",
+      "target": "",
+      "behavior": "report-only",
+      "caveat": "WorkBuddy has no hooks.json equivalent",
+      "status": "unsupported"
+    },
+    {
+      "source": "memory",
+      "target": "memory-index",
+      "behavior": "index",
+      "caveat": "read-only index generation",
+      "status": "partial"
+    },
+    {
+      "source": "commands",
+      "target": "skills",
+      "behavior": "convert",
+      "caveat": "slash commands convert to one-file skills",
+      "status": "partial"
+    }
+  ]
+}

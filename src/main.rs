@@ -143,12 +143,12 @@ fn build_source(source_name: &str, project: &PathBuf) -> Box<dyn SourceAdapter> 
     }
 }
 
-/// 选择目标适配器: qoder | trae | lingma
+/// 选择目标适配器: qoder | trae | lingma | workbuddy
 fn build_target(target_name: &str, project: &PathBuf) -> Result<LayoutTarget, anyhow::Error> {
     match TargetLayout::by_name(target_name) {
         Some(layout) => Ok(LayoutTarget::detect(layout, project)),
         None => Err(anyhow::anyhow!(
-            "未知目标平台: {target_name} (可选: qoder | trae | lingma)"
+            "未知目标平台: {target_name} (可选: qoder | trae | lingma | workbuddy)"
         )),
     }
 }

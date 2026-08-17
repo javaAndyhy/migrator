@@ -359,6 +359,53 @@ impl MappingTable {
         table
     }
 
+    /// 内置映射表（codex → workbuddy）
+    ///
+    /// 实测 ~/.workbuddy 结构:
+    ///   - mcp: .mcp.json (mcpServers 字段, Claude 兼容) — 合并时保留现有 server
+    ///   - skills: skills/ (标准 SKILL.md) — 用户级技能
+    ///   - instructions: MEMORY.md (用户级记忆, 托管块追加)
+    ///   - agents: 无文件级 subagent → Unsupported
+    pub fn builtin_codex_to_workbuddy() -> Self {
+        let mut table = Self::new("codex", "workbuddy");
+        table.add_entry(MappingEntry {
+            source: "instructions".into(),
+            target: "MEMORY.md".into(),
+            behavior: "append-managed".into(),
+            caveat: Some("appended to user memory as managed block; review".into()),
+            status: MappingStatus::Partial,
+        });
+        table.add_entry(MappingEntry {
+            source: "mcp".into(),
+            target: ".mcp.json".into(),
+            behavior: "merge".into(),
+            caveat: Some("TOML->JSON; merged into ~/.workbuddy/.mcp.json preserving existing servers".into()),
+            status: MappingStatus::Partial,
+        });
+        table.add_entry(MappingEntry {
+            source: "skills".into(),
+            target: "skills".into(),
+            behavior: "convert".into(),
+            caveat: Some("SKILL.md format compatible; frontmatter may need review".into()),
+            status: MappingStatus::Partial,
+        });
+        table.add_entry(MappingEntry {
+            source: "agents".into(),
+            target: "".into(),
+            behavior: "report-only".into(),
+            caveat: Some("WorkBuddy has no file-based subagents (Expert is a marketplace concept)".into()),
+            status: MappingStatus::Unsupported,
+        });
+        table.add_entry(MappingEntry {
+            source: "memory".into(),
+            target: "memory-index".into(),
+            behavior: "index".into(),
+            caveat: Some("read-only index generation".into()),
+            status: MappingStatus::Partial,
+        });
+        table
+    }
+
     /// 按 source×target 组合选择内置映射表（平台化）
     ///
     /// 未知组合回退到 claude-code → qoder。
@@ -369,6 +416,7 @@ impl MappingTable {
             ("codex", "qoder") => Self::builtin_codex_to_qoder(),
             ("codex", "trae") => Self::builtin_codex_to_trae(),
             ("codex", "lingma") => Self::builtin_codex_to_lingma(),
+            ("codex", "workbuddy") => Self::builtin_codex_to_workbuddy(),
             _ => Self::builtin_claude_to_qoder(),
         }
     }
@@ -555,6 +603,25 @@ mod tests {
         assert_eq!(
             codex_lingma.find("mcp").unwrap().status,
             MappingStatus::Partial
+        );
+    }
+
+    #[test]
+    fn builtin_codex_to_workbuddy() {
+        let wb = MappingTable::builtin("codex", "workbuddy");
+        assert_eq!(wb.source, "codex");
+        assert_eq!(wb.target, "workbuddy");
+        // instructions → MEMORY.md (append-managed)
+        let instr = wb.find("instructions").unwrap();
+        assert_eq!(instr.target, "MEMORY.md");
+        assert_eq!(instr.behavior, "append-managed");
+        // mcp → .mcp.json (merge)
+        assert_eq!(wb.find("mcp").unwrap().target, ".mcp.json");
+        assert_eq!(wb.find("mcp").unwrap().behavior, "merge");
+        // agents unsupported（WorkBuddy 无文件级 subagent）
+        assert_eq!(
+            wb.find("agents").unwrap().status,
+            MappingStatus::Unsupported
         );
     }
 
