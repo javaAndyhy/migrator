@@ -39,8 +39,8 @@
 //! `{"mcpServers": {...}}` JSON，供 `mcp` 转换器继续转 TOML/其他 JSON。
 //! 块外的用户条目视为「非本工具管理」，不读取（避免把用户的私有配置误当迁移源）。
 
-use anyhow::{anyhow, Context, Result};
-use serde_json::{json, Map, Value};
+use anyhow::{Context, Result, anyhow};
+use serde_json::{Map, Value, json};
 use std::collections::BTreeSet;
 
 /// 托管块起始标记（YAML 注释形式，对解析器不可见）
@@ -83,14 +83,24 @@ pub fn convert_json_mcp_to_cordis(json_mcp: &str) -> (String, bool, Vec<String>)
         .cloned()
         .unwrap_or_default();
     if servers.is_empty() {
-        return (String::new(), false, vec!["源 MCP 配置不含任何 server".into()]);
+        return (
+            String::new(),
+            false,
+            vec!["源 MCP 配置不含任何 server".into()],
+        );
     }
 
     let mut chunks: Vec<String> = Vec::new();
     for (name, def) in &servers {
         // WorkBuddy 等客户端会写 disabled 标记；dsh 无禁用开关，跳过而不是假装禁用
-        if def.get("disabled").and_then(|v| v.as_bool()).unwrap_or(false) {
-            notes.push(format!("server {name}: 源侧已 disabled，dsh 无禁用开关 → 已跳过"));
+        if def
+            .get("disabled")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false)
+        {
+            notes.push(format!(
+                "server {name}: 源侧已 disabled，dsh 无禁用开关 → 已跳过"
+            ));
             continue;
         }
         match build_entry(name, def) {
@@ -158,26 +168,25 @@ fn build_entry(name: &str, def: &Value) -> Result<Option<(String, Vec<String>)>>
                 }
             }
             if args.len() != args.iter().filter(|a| a.is_string()).count() {
-                notes.push(format!("server {name}: args 含非字符串项，已忽略非字符串部分"));
+                notes.push(format!(
+                    "server {name}: args 含非字符串项，已忽略非字符串部分"
+                ));
             }
         }
         if let Some(cwd) = def.get("cwd").and_then(|v| v.as_str()) {
             out.push_str(&format!("    cwd: {}\n", yaml_quote(cwd)));
         }
-        if let Some(env) = def.get("env").and_then(|v| v.as_object()) {
-            if !env.is_empty() {
-                out.push_str("    env:\n");
-                for (k, v) in env {
-                    match v.as_str() {
-                        Some(s) => out.push_str(&format!("      {k}: {}\n", yaml_js_or_scalar(s))),
-                        None => {
-                            // 非字符串 env（数字/布尔）→ 转成字面量文本，避免 dsh 侧类型错误
-                            out.push_str(&format!(
-                                "      {k}: {}\n",
-                                yaml_quote(&v.to_string())
-                            ));
-                            notes.push(format!("server {name}: env[{k}] 非字符串，已转文本"));
-                        }
+        if let Some(env) = def.get("env").and_then(|v| v.as_object())
+            && !env.is_empty()
+        {
+            out.push_str("    env:\n");
+            for (k, v) in env {
+                match v.as_str() {
+                    Some(s) => out.push_str(&format!("      {k}: {}\n", yaml_js_or_scalar(s))),
+                    None => {
+                        // 非字符串 env（数字/布尔）→ 转成字面量文本，避免 dsh 侧类型错误
+                        out.push_str(&format!("      {k}: {}\n", yaml_quote(&v.to_string())));
+                        notes.push(format!("server {name}: env[{k}] 非字符串，已转文本"));
                     }
                 }
             }
@@ -185,14 +194,14 @@ fn build_entry(name: &str, def: &Value) -> Result<Option<(String, Vec<String>)>>
     } else {
         let url = url.expect("http transport requires url");
         out.push_str(&format!("    url: {}\n", yaml_quote(url)));
-        if let Some(headers) = def.get("headers").and_then(|v| v.as_object()) {
-            if !headers.is_empty() {
-                out.push_str("    headers:\n");
-                for (k, v) in headers {
-                    match v.as_str() {
-                        Some(s) => out.push_str(&format!("      {k}: {}\n", yaml_js_or_scalar(s))),
-                        None => out.push_str(&format!("      {k}: {}\n", yaml_quote(&v.to_string()))),
-                    }
+        if let Some(headers) = def.get("headers").and_then(|v| v.as_object())
+            && !headers.is_empty()
+        {
+            out.push_str("    headers:\n");
+            for (k, v) in headers {
+                match v.as_str() {
+                    Some(s) => out.push_str(&format!("      {k}: {}\n", yaml_js_or_scalar(s))),
+                    None => out.push_str(&format!("      {k}: {}\n", yaml_quote(&v.to_string()))),
                 }
             }
         }
@@ -236,10 +245,10 @@ fn yaml_quote(s: &str) -> String {
 /// 裸写 ``!!js `Bearer ${...}` `` 是非法 YAML —— 反引号是 YAML 保留指示符，
 /// 不能出现在 plain scalar 的起始位置（serde_yaml / dsh 会直接解析失败）。
 fn yaml_js_or_scalar(s: &str) -> String {
-    if let Some(rest) = s.strip_prefix("{env:").and_then(|r| r.strip_suffix('}')) {
-        if is_ident(rest) {
-            return yaml_js_expr(&format!("process.env.{rest}"));
-        }
+    if let Some(rest) = s.strip_prefix("{env:").and_then(|r| r.strip_suffix('}'))
+        && is_ident(rest)
+    {
+        return yaml_js_expr(&format!("process.env.{rest}"));
     }
     if s.contains("{env:") {
         // 内嵌占位符（如 "Bearer {env:TOKEN}"）→ JS 模板字符串
@@ -280,8 +289,7 @@ fn yaml_js_expr(source: &str) -> String {
 /// 环境变量名合法性（避免把 `{env:foo bar}` 之类写进 JS 表达式）
 fn is_ident(s: &str) -> bool {
     !s.is_empty()
-        && s.chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '_')
+        && s.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
         && !s.starts_with(|c: char| c.is_ascii_digit())
 }
 
@@ -488,15 +496,15 @@ pub fn cordis_block_to_json(block: &str) -> Result<String> {
         if let Some(cmd) = cfg.get(yaml_key("command")).and_then(|v| v.as_str()) {
             def.insert("command".into(), json!(cmd));
         }
-        if let Some(args) = cfg.get(yaml_key("args")) {
-            if let serde_yaml::Value::Sequence(items) = args {
-                let list: Vec<Value> = items
-                    .iter()
-                    .filter_map(|v| v.as_str().map(|s| json!(s)))
-                    .collect();
-                if !list.is_empty() {
-                    def.insert("args".into(), Value::Array(list));
-                }
+        if let Some(args) = cfg.get(yaml_key("args"))
+            && let serde_yaml::Value::Sequence(items) = args
+        {
+            let list: Vec<Value> = items
+                .iter()
+                .filter_map(|v| v.as_str().map(|s| json!(s)))
+                .collect();
+            if !list.is_empty() {
+                def.insert("args".into(), Value::Array(list));
             }
         }
         if let Some(cwd) = cfg.get(yaml_key("cwd")).and_then(|v| v.as_str()) {
@@ -523,7 +531,9 @@ pub fn cordis_block_to_json(block: &str) -> Result<String> {
         servers.insert(server_name, Value::Object(def));
     }
 
-    Ok(serde_json::to_string_pretty(&json!({ "mcpServers": servers }))?)
+    Ok(serde_json::to_string_pretty(
+        &json!({ "mcpServers": servers }),
+    )?)
 }
 
 fn yaml_key(k: &str) -> serde_yaml::Value {
@@ -560,10 +570,10 @@ fn yaml_scalar_to_json(v: &serde_yaml::Value) -> Value {
 /// `process.env.VAR` / `` `Bearer ${process.env.VAR}` `` → `{env:VAR}` 占位符
 fn js_to_env_placeholder(raw: &str) -> String {
     let trimmed = raw.trim();
-    if let Some(var) = trimmed.strip_prefix("process.env.") {
-        if is_ident(var) {
-            return format!("{{env:{var}}}");
-        }
+    if let Some(var) = trimmed.strip_prefix("process.env.")
+        && is_ident(var)
+    {
+        return format!("{{env:{var}}}");
     }
     // 模板字符串: `...${process.env.X}...`
     if trimmed.starts_with('`') && trimmed.ends_with('`') && trimmed.len() >= 2 {
@@ -572,7 +582,12 @@ fn js_to_env_placeholder(raw: &str) -> String {
         let mut rest = inner;
         while let Some(idx) = rest.find("${process.env.") {
             let (head, tail) = rest.split_at(idx);
-            out.push_str(&head.replace("\\`", "`").replace("\\\\", "\\").replace("\\${", "${"));
+            out.push_str(
+                &head
+                    .replace("\\`", "`")
+                    .replace("\\\\", "\\")
+                    .replace("\\${", "${"),
+            );
             let after = &tail["${process.env.".len()..];
             match after.find('}') {
                 Some(end) => {
@@ -586,7 +601,12 @@ fn js_to_env_placeholder(raw: &str) -> String {
                 }
             }
         }
-        out.push_str(&rest.replace("\\`", "`").replace("\\\\", "\\").replace("\\${", "${"));
+        out.push_str(
+            &rest
+                .replace("\\`", "`")
+                .replace("\\\\", "\\")
+                .replace("\\${", "${"),
+        );
         return out;
     }
     raw.to_string()
@@ -621,8 +641,9 @@ mod tests {
         // http + header 占位符 → JS 模板字符串（单引号包裹，反引号不能裸起 YAML 标量）
         assert!(fragment.contains("- id: mcp-github"));
         assert!(fragment.contains("transport: streamable-http"));
-        assert!(fragment
-            .contains("Authorization: !!js '`Bearer ${process.env.GITHUB_PERSONAL_ACCESS_TOKEN}`'"));
+        assert!(fragment.contains(
+            "Authorization: !!js '`Bearer ${process.env.GITHUB_PERSONAL_ACCESS_TOKEN}`'"
+        ));
         // env 整值占位符 → process.env
         assert!(fragment.contains("PG_URL: !!js 'process.env.ZZ_POSTGRES_URL'"));
         assert!(fragment.contains("MODE: 'strict'"));
@@ -672,7 +693,10 @@ mod tests {
         let out = upsert_cordis_mcp_block(existing, &fragment).unwrap();
         assert!(out.skipped.is_empty());
         // 用户条目与注释逐字保留
-        assert!(out.content.contains("# Your patch layer for this dsh profile"));
+        assert!(
+            out.content
+                .contains("# Your patch layer for this dsh profile")
+        );
         assert!(out.content.contains("id: llm-pi-ai"));
         assert!(out.content.contains("providers: {}"));
         // 托管块存在且只一个
@@ -691,10 +715,10 @@ mod tests {
 
     #[test]
     fn upsert_replaces_stale_block_content() {
-        let old = format!("{DSH_MCP_BEGIN}\n- id: mcp-old\n  name: '{DSH_MCP_PLUGIN}'\n{DSH_MCP_END}\n");
-        let (fragment, _, _) = convert_json_mcp_to_cordis(
-            r#"{"mcpServers":{"fresh":{"command":"x"}}}"#,
-        );
+        let old =
+            format!("{DSH_MCP_BEGIN}\n- id: mcp-old\n  name: '{DSH_MCP_PLUGIN}'\n{DSH_MCP_END}\n");
+        let (fragment, _, _) =
+            convert_json_mcp_to_cordis(r#"{"mcpServers":{"fresh":{"command":"x"}}}"#);
         let out = upsert_cordis_mcp_block(&old, &fragment).unwrap();
         assert!(!out.content.contains("mcp-old"));
         assert!(out.content.contains("mcp-fresh"));
@@ -703,9 +727,14 @@ mod tests {
     #[test]
     fn upsert_strips_empty_sequence_placeholder() {
         let existing = "# comment only file\n[]\n";
-        let (fragment, _, _) = convert_json_mcp_to_cordis(r#"{"mcpServers":{"a":{"command":"x"}}}"#);
+        let (fragment, _, _) =
+            convert_json_mcp_to_cordis(r#"{"mcpServers":{"a":{"command":"x"}}}"#);
         let out = upsert_cordis_mcp_block(existing, &fragment).unwrap();
-        assert!(!out.content.contains("[]"), "必须移除 [] 占位: {}", out.content);
+        assert!(
+            !out.content.contains("[]"),
+            "必须移除 [] 占位: {}",
+            out.content
+        );
         assert!(out.content.contains("# comment only file"));
         // 生成的 YAML 必须可解析
         let parsed: serde_yaml::Value = serde_yaml::from_str(&out.content).unwrap();
@@ -739,7 +768,10 @@ mod tests {
         let servers = v["mcpServers"].as_object().unwrap();
         assert_eq!(servers.len(), 4);
         assert_eq!(servers["context7"]["command"], "npx");
-        assert_eq!(servers["context7"]["args"][1], "@upstash/context7-mcp@3.2.5");
+        assert_eq!(
+            servers["context7"]["args"][1],
+            "@upstash/context7-mcp@3.2.5"
+        );
         assert_eq!(
             servers["github"]["headers"]["Authorization"],
             "Bearer {env:GITHUB_PERSONAL_ACCESS_TOKEN}"

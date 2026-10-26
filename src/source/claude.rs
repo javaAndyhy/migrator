@@ -263,7 +263,8 @@ mod tests {
     use std::fs;
 
     fn temp_dir(name: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("migrator-src-{}-{}", name, std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("migrator-src-{}-{}", name, std::process::id()));
         fs::create_dir_all(&dir).unwrap();
         dir
     }
@@ -310,7 +311,10 @@ mod tests {
 
         let src = ClaudeCodeSource::new(dir.join("home").join(".claude"), claude_dir);
         let surfaces = src.scan();
-        let hooks = surfaces.iter().find(|s| s.kind == SurfaceKind::Hooks).unwrap();
+        let hooks = surfaces
+            .iter()
+            .find(|s| s.kind == SurfaceKind::Hooks)
+            .unwrap();
         assert!(hooks.present);
         assert!(hooks.source_path.contains("hooks.json"));
         let commands: Vec<&ConfigSurface> = surfaces

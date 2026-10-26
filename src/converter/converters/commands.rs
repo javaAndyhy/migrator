@@ -21,13 +21,11 @@ pub fn convert_command(source_content: &str, name: &str) -> (String, bool, Vec<S
     let mut needs_review = false;
 
     // 提取原 frontmatter 的 description（Claude command 可带 description）
-    let original_description = split_frontmatter(source_content)
-        .0
-        .and_then(|fm| {
-            fm.lines()
-                .find_map(|l| l.trim_start().strip_prefix("description:"))
-                .map(|v| v.trim().trim_matches('"').to_string())
-        });
+    let original_description = split_frontmatter(source_content).0.and_then(|fm| {
+        fm.lines()
+            .find_map(|l| l.trim_start().strip_prefix("description:"))
+            .map(|v| v.trim().trim_matches('"').to_string())
+    });
 
     // 正文 = frontmatter 之后的部分（保留原格式）
     let (_, body) = split_frontmatter(source_content);
@@ -74,7 +72,8 @@ mod tests {
 
     #[test]
     fn converts_command_with_description() {
-        let cmd = "---\ndescription: 审查代码质量\n---\n\n请审查当前 diff 的代码质量，给出改进建议。\n";
+        let cmd =
+            "---\ndescription: 审查代码质量\n---\n\n请审查当前 diff 的代码质量，给出改进建议。\n";
         let (out, needs_review, notes) = convert_command(cmd, "review");
         assert!(out.starts_with("---\n"));
         assert!(out.contains("name: review"));

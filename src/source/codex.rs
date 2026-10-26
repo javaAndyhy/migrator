@@ -205,7 +205,8 @@ mod tests {
     use std::fs;
 
     fn temp_dir(name: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("migrator-codex-{name}-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("migrator-codex-{name}-{}", std::process::id()));
         fs::create_dir_all(&dir).unwrap();
         dir
     }
@@ -225,7 +226,10 @@ mod tests {
             .find(|s| s.kind == SurfaceKind::Instructions)
             .unwrap();
         assert!(instructions.present);
-        let mcp = surfaces.iter().find(|s| s.kind == SurfaceKind::Mcp).unwrap();
+        let mcp = surfaces
+            .iter()
+            .find(|s| s.kind == SurfaceKind::Mcp)
+            .unwrap();
         assert!(mcp.present);
         fs::remove_dir_all(&dir).unwrap();
     }
@@ -258,7 +262,10 @@ mod tests {
 
         let src = CodexSource::new(&codex);
         let surfaces = src.scan();
-        let hooks = surfaces.iter().find(|s| s.kind == SurfaceKind::Hooks).unwrap();
+        let hooks = surfaces
+            .iter()
+            .find(|s| s.kind == SurfaceKind::Hooks)
+            .unwrap();
         assert!(hooks.present);
         assert!(hooks.source_path.contains("hooks.json"));
         // hooks 内容可读

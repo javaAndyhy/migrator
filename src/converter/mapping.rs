@@ -246,7 +246,9 @@ impl MappingTable {
             source: "mcp".into(),
             target: ".mcp.json".into(),
             behavior: "merge".into(),
-            caveat: Some("TOML [mcp_servers] to JSON mcpServers; merged preserving existing servers".into()),
+            caveat: Some(
+                "TOML [mcp_servers] to JSON mcpServers; merged preserving existing servers".into(),
+            ),
             status: MappingStatus::Partial,
         });
         table.add_entry(MappingEntry {
@@ -289,7 +291,9 @@ impl MappingTable {
             source: "mcp".into(),
             target: "mcp.json".into(),
             behavior: "merge".into(),
-            caveat: Some("TOML [mcp_servers] to JSON mcpServers; merged preserving existing servers".into()),
+            caveat: Some(
+                "TOML [mcp_servers] to JSON mcpServers; merged preserving existing servers".into(),
+            ),
             status: MappingStatus::Partial,
         });
         table.add_entry(MappingEntry {
@@ -373,14 +377,19 @@ impl MappingTable {
             source: "instructions".into(),
             target: "MEMORY.md".into(),
             behavior: "append-reference".into(),
-            caveat: Some("full rules copied to ~/.workbuddy/rules/; MEMORY.md keeps brief managed reference".into()),
+            caveat: Some(
+                "full rules copied to ~/.workbuddy/rules/; MEMORY.md keeps brief managed reference"
+                    .into(),
+            ),
             status: MappingStatus::Partial,
         });
         table.add_entry(MappingEntry {
             source: "mcp".into(),
             target: "mcp.json".into(),
             behavior: "merge".into(),
-            caveat: Some("TOML->JSON; merged into ~/.workbuddy/mcp.json preserving existing servers".into()),
+            caveat: Some(
+                "TOML->JSON; merged into ~/.workbuddy/mcp.json preserving existing servers".into(),
+            ),
             status: MappingStatus::Partial,
         });
         table.add_entry(MappingEntry {
@@ -394,14 +403,19 @@ impl MappingTable {
             source: "agents".into(),
             target: "".into(),
             behavior: "report-only".into(),
-            caveat: Some("WorkBuddy has no file-based subagents (Expert is a marketplace concept)".into()),
+            caveat: Some(
+                "WorkBuddy has no file-based subagents (Expert is a marketplace concept)".into(),
+            ),
             status: MappingStatus::Unsupported,
         });
         table.add_entry(MappingEntry {
             source: "memory".into(),
             target: "".into(),
             behavior: "report-only".into(),
-            caveat: Some("WorkBuddy has no read-only memory index consumer; memories stay on source side".into()),
+            caveat: Some(
+                "WorkBuddy has no read-only memory index consumer; memories stay on source side"
+                    .into(),
+            ),
             status: MappingStatus::Unsupported,
         });
         table
@@ -416,7 +430,10 @@ impl MappingTable {
             source: "instructions".into(),
             target: "MEMORY.md".into(),
             behavior: "append-reference".into(),
-            caveat: Some("full rules copied to ~/.workbuddy/rules/; MEMORY.md keeps brief managed reference".into()),
+            caveat: Some(
+                "full rules copied to ~/.workbuddy/rules/; MEMORY.md keeps brief managed reference"
+                    .into(),
+            ),
             status: MappingStatus::Partial,
         });
         table.add_entry(MappingEntry {
@@ -437,14 +454,19 @@ impl MappingTable {
             source: "agents".into(),
             target: "".into(),
             behavior: "report-only".into(),
-            caveat: Some("WorkBuddy has no file-based subagents (Expert is a marketplace concept)".into()),
+            caveat: Some(
+                "WorkBuddy has no file-based subagents (Expert is a marketplace concept)".into(),
+            ),
             status: MappingStatus::Unsupported,
         });
         table.add_entry(MappingEntry {
             source: "memory".into(),
             target: "".into(),
             behavior: "report-only".into(),
-            caveat: Some("WorkBuddy has no read-only memory index consumer; memories stay on source side".into()),
+            caveat: Some(
+                "WorkBuddy has no read-only memory index consumer; memories stay on source side"
+                    .into(),
+            ),
             status: MappingStatus::Unsupported,
         });
         table
@@ -464,12 +486,14 @@ impl MappingTable {
                 source: "mcp".into(),
                 target: if to_codex { "config.toml" } else { ".mcp.json" }.into(),
                 behavior: if to_codex { "convert" } else { "merge" }.into(),
-                caveat: Some(if to_codex {
-                    "JSON mcpServers -> [mcp_servers] TOML (approx, review)"
-                } else {
-                    "JSON mcpServers compatible; merged preserving existing servers"
-                }
-                .into()),
+                caveat: Some(
+                    if to_codex {
+                        "JSON mcpServers -> [mcp_servers] TOML (approx, review)"
+                    } else {
+                        "JSON mcpServers compatible; merged preserving existing servers"
+                    }
+                    .into(),
+                ),
                 status: MappingStatus::Partial,
             },
             MappingEntry {
@@ -483,12 +507,14 @@ impl MappingTable {
                 source: "agents".into(),
                 target: "agents".into(),
                 behavior: "convert".into(),
-                caveat: Some(if to_codex {
-                    "md frontmatter -> Codex TOML (approx, review)"
-                } else {
-                    "md frontmatter compatible (Claude subagent)"
-                }
-                .into()),
+                caveat: Some(
+                    if to_codex {
+                        "md frontmatter -> Codex TOML (approx, review)"
+                    } else {
+                        "md frontmatter compatible (Claude subagent)"
+                    }
+                    .into(),
+                ),
                 status: MappingStatus::Partial,
             },
             MappingEntry {
@@ -553,21 +579,28 @@ impl MappingTable {
             source: "skills".into(),
             target: "skills".into(),
             behavior: "convert".into(),
-            caveat: Some("written to ~/.dsh/skills; dsh requires kebab-case name + description frontmatter".into()),
+            caveat: Some(
+                "written to ~/.dsh/skills; dsh requires kebab-case name + description frontmatter"
+                    .into(),
+            ),
             status: MappingStatus::Partial,
         });
         table.add_entry(MappingEntry {
             source: "agents".into(),
             target: "".into(),
             behavior: "report-only".into(),
-            caveat: Some("dsh subagents are preset/profile driven; no file-based agents/*.md".into()),
+            caveat: Some(
+                "dsh subagents are preset/profile driven; no file-based agents/*.md".into(),
+            ),
             status: MappingStatus::Unsupported,
         });
         table.add_entry(MappingEntry {
             source: "commands".into(),
             target: "skills".into(),
             behavior: "convert".into(),
-            caveat: Some("slash commands become one-file skills (dsh skills are user-invocable)".into()),
+            caveat: Some(
+                "slash commands become one-file skills (dsh skills are user-invocable)".into(),
+            ),
             status: MappingStatus::Partial,
         });
         table.add_entry(MappingEntry {
@@ -598,7 +631,9 @@ impl MappingTable {
             source: "instructions".into(),
             target: "instructions.md".into(),
             behavior: "manual-paste".into(),
-            caveat: Some("paste .doubao/manual/instructions.md into the client's custom instructions".into()),
+            caveat: Some(
+                "paste .doubao/manual/instructions.md into the client's custom instructions".into(),
+            ),
             status: MappingStatus::Partial,
         });
         table.add_entry(MappingEntry {
@@ -615,7 +650,9 @@ impl MappingTable {
             source: "skills".into(),
             target: "skills".into(),
             behavior: "manual-paste".into(),
-            caveat: Some("Doubao skills are marketplace-only; copied files serve as reference".into()),
+            caveat: Some(
+                "Doubao skills are marketplace-only; copied files serve as reference".into(),
+            ),
             status: MappingStatus::Partial,
         });
         table.add_entry(MappingEntry {
@@ -750,6 +787,7 @@ impl MappingTable {
     ///   1. README「新增平台组合 = 加一个 JSON，零代码改动」在发布后失效；
     ///   2. 逆向组合的 8 个 JSON 在发布场景成为死文件；
     ///   3. 同一条命令在不同 CWD 下解析到不同映射源，行为不可预测。
+    ///
     /// 内嵌后二进制在任何目录下行为一致，且 JSON 成为映射语义的唯一真相源。
     ///
     /// key 用 CLI 名（claude/codex/qoder/...），与 `default_mapping_file` 文件名一致。
@@ -872,7 +910,10 @@ mod tests {
         }"#;
         let table = MappingTable::from_json_str(json).unwrap();
         assert_eq!(table.find("skills").unwrap().status, MappingStatus::Partial);
-        assert_eq!(table.find("hooks").unwrap().status, MappingStatus::Unsupported);
+        assert_eq!(
+            table.find("hooks").unwrap().status,
+            MappingStatus::Unsupported
+        );
     }
 
     #[test]
@@ -884,7 +925,13 @@ mod tests {
             "entries": [{"source": "instructions", "target": "AGENTS.md", "behavior": "convert", "status": "exact"}]
         }"#;
         let err = MappingTable::from_json_str(json).unwrap_err();
-        assert!(matches!(err, MappingError::SchemaVersionMismatch { expected: 1, actual: 2 }));
+        assert!(matches!(
+            err,
+            MappingError::SchemaVersionMismatch {
+                expected: 1,
+                actual: 2
+            }
+        ));
     }
 
     #[test]
@@ -1009,7 +1056,14 @@ mod tests {
         assert_eq!(qx.target, "codex");
         assert_eq!(qx.find("instructions").unwrap().target, "AGENTS.md");
         assert_eq!(qx.find("mcp").unwrap().behavior, "convert");
-        assert!(qx.find("mcp").unwrap().caveat.as_deref().unwrap().contains("TOML"));
+        assert!(
+            qx.find("mcp")
+                .unwrap()
+                .caveat
+                .as_deref()
+                .unwrap()
+                .contains("TOML")
+        );
         // workbuddy → claude 同样覆盖
         let wc = MappingTable::builtin("workbuddy", "claude").unwrap();
         assert_eq!(wc.find("instructions").unwrap().target, "CLAUDE.md");
@@ -1038,10 +1092,7 @@ mod tests {
                 MappingStatus::Unsupported,
                 "{src}→dsh: dsh 无文件级 subagent"
             );
-            assert_eq!(
-                t.find("memory").unwrap().status,
-                MappingStatus::Unsupported
-            );
+            assert_eq!(t.find("memory").unwrap().status, MappingStatus::Unsupported);
             // 7 个面齐备（claude/codex 侧无 commands 时也不缺）
             assert_eq!(t.entries.len(), 7, "{src}→dsh 应有 7 个配置面");
         }
@@ -1059,10 +1110,7 @@ mod tests {
             let mcp = t.find("mcp").unwrap();
             assert_eq!(mcp.behavior, "manual-paste");
             assert_eq!(mcp.target, "connectors.json");
-            assert_eq!(
-                t.find("hooks").unwrap().status,
-                MappingStatus::Unsupported
-            );
+            assert_eq!(t.find("hooks").unwrap().status, MappingStatus::Unsupported);
         }
     }
 
@@ -1091,7 +1139,10 @@ mod tests {
     #[test]
     fn default_mapping_file_path() {
         let p = MappingTable::default_mapping_file("claude", "trae");
-        assert_eq!(p, std::path::PathBuf::from("data/mappings/claude-to-trae.json"));
+        assert_eq!(
+            p,
+            std::path::PathBuf::from("data/mappings/claude-to-trae.json")
+        );
         let p2 = MappingTable::default_mapping_file("codex", "lingma");
         assert_eq!(
             p2,
@@ -1124,7 +1175,11 @@ mod tests {
             assert_eq!(t.target, tgt, "{} target 字段应为 {tgt}", f.display());
             assert_eq!(t.entries.len(), 7, "{} 应含 7 个面", f.display());
             // commands/hooks/memory 此前是 builtin 硬编码里的"死代码"，现在由 JSON 承载
-            assert!(t.find("commands").is_some(), "{} 缺 commands 条目", f.display());
+            assert!(
+                t.find("commands").is_some(),
+                "{} 缺 commands 条目",
+                f.display()
+            );
             assert!(t.find("hooks").is_some(), "{} 缺 hooks 条目", f.display());
             assert!(t.find("memory").is_some(), "{} 缺 memory 条目", f.display());
         }
@@ -1246,12 +1301,19 @@ mod tests {
     /// 这是修复的核心诉求 —— 发布的二进制在任何目录下都要能找到用户放置的映射表。
     #[test]
     fn user_mapping_file_is_cwd_independent() {
-        let p = MappingTable::user_mapping_file("qoder", "codex")
-            .expect("HOME/USERPROFILE 应可用");
-        assert!(p.is_absolute(), "用户级映射路径必须是绝对路径: {}", p.display());
+        let p = MappingTable::user_mapping_file("qoder", "codex").expect("HOME/USERPROFILE 应可用");
         assert!(
-            p.ends_with(std::path::Path::new(".migrator/mappings/qoder-to-codex.json"))
-                || p.to_string_lossy().replace('\\', "/").ends_with(".migrator/mappings/qoder-to-codex.json"),
+            p.is_absolute(),
+            "用户级映射路径必须是绝对路径: {}",
+            p.display()
+        );
+        assert!(
+            p.ends_with(std::path::Path::new(
+                ".migrator/mappings/qoder-to-codex.json"
+            )) || p
+                .to_string_lossy()
+                .replace('\\', "/")
+                .ends_with(".migrator/mappings/qoder-to-codex.json"),
             "路径结构不符: {}",
             p.display()
         );

@@ -71,11 +71,11 @@ fn migrator_block_ranges(content: &str) -> Vec<(String, usize, usize)> {
         offset += line.len();
         if let Some(inner) = marker_inner(line, "BEGIN") {
             stack.push((inner, line_start));
-        } else if let Some(inner) = marker_inner(line, "END") {
-            if let Some(pos) = stack.iter().rposition(|(s, _)| *s == inner) {
-                let (s, start) = stack.remove(pos);
-                out.push((s, start, offset));
-            }
+        } else if let Some(inner) = marker_inner(line, "END")
+            && let Some(pos) = stack.iter().rposition(|(s, _)| *s == inner)
+        {
+            let (s, start) = stack.remove(pos);
+            out.push((s, start, offset));
         }
     }
     out.sort_by_key(|(_, s, _)| *s);
@@ -84,7 +84,9 @@ fn migrator_block_ranges(content: &str) -> Vec<(String, usize, usize)> {
 
 /// 内容中是否存在任意 MIGRATOR 块（不限 scope），返回第一个块的内部标记文本
 pub fn find_any_migrator_block(content: &str) -> Option<String> {
-    migrator_block_ranges(content).first().map(|(s, _, _)| s.clone())
+    migrator_block_ranges(content)
+        .first()
+        .map(|(s, _, _)| s.clone())
 }
 
 /// 在目标文件中更新托管块区域（幂等）

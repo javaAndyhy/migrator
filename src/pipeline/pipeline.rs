@@ -3,9 +3,11 @@
 //! scan → plan → dry-run → apply → validate
 //! 每阶段可独立运行（migrate-to-codex 命令集模式）
 
-use crate::converter::converters::{agents::convert_agent, memory::build_memory_index, skills::convert_skill};
-use crate::converter::mapping::{ConversionResult, MappingStatus};
 use crate::converter::converters::mcp_yaml;
+use crate::converter::converters::{
+    agents::convert_agent, memory::build_memory_index, skills::convert_skill,
+};
+use crate::converter::mapping::{ConversionResult, MappingStatus};
 use crate::model::{
     ConfigSurface, MigrationAction, MigrationOptions, MigrationPlan, ReportRow, ReportStatus,
     SurfaceKind,
@@ -187,7 +189,9 @@ pub fn run_migration<T: TargetAdapter>(
         let target_hint = if status != ReportStatus::NotAdded {
             format!(
                 " → {}",
-                target.target_path(surface.kind, &surface.source_path).display()
+                target
+                    .target_path(surface.kind, &surface.source_path)
+                    .display()
             )
         } else {
             String::new()
@@ -206,12 +210,12 @@ pub fn run_migration<T: TargetAdapter>(
     }
 
     // 手动迁移包（豆包）：补一份操作说明，否则用户面对一堆文件不知道往哪粘
-    if target.is_manual_bundle() && options.confirm_write {
-        if let Some(dir) = target.manual_bundle_dir() {
-            if let Err(e) = write_manual_bundle_readme(&dir, &reports) {
-                eprintln!("[警告] 写入手动迁移说明失败 {}: {e}", dir.display());
-            }
-        }
+    if target.is_manual_bundle()
+        && options.confirm_write
+        && let Some(dir) = target.manual_bundle_dir()
+        && let Err(e) = write_manual_bundle_readme(&dir, &reports)
+    {
+        eprintln!("[警告] 写入手动迁移说明失败 {}: {e}", dir.display());
     }
 
     Ok(reports)
@@ -245,9 +249,7 @@ fn write_manual_bundle_readme(dir: &std::path::Path, reports: &[ReportRow]) -> a
             r.notes.replace('|', "\\|")
         ));
     }
-    md.push_str(
-        "\n> 提示: 本目录由 migrator 生成，重复迁移会覆盖；需要保留请自行复制一份。\n",
-    );
+    md.push_str("\n> 提示: 本目录由 migrator 生成，重复迁移会覆盖；需要保留请自行复制一份。\n");
     std::fs::create_dir_all(dir)?;
     crate::safety::atomic::atomic_write(&dir.join("README.md"), &md)?;
     Ok(())
@@ -338,9 +340,7 @@ fn convert_surface(
                 // Codex 源（TOML）→ 其余目标（JSON / TOML 由 merge 层落盘）
                 ("codex", _) => crate::converter::converters::mcp::convert_codex_mcp(raw),
                 // 国产/Claude JSON 源 → Codex TOML 目标（反向）
-                (_, "codex") => {
-                    crate::converter::converters::mcp::convert_mcp_json_to_toml(raw)
-                }
+                (_, "codex") => crate::converter::converters::mcp::convert_mcp_json_to_toml(raw),
                 // JSON 源 → dsh：cordis patch YAML 插件条目
                 (_, "dsh") => mcp_yaml::convert_json_mcp_to_cordis(raw),
                 // JSON → JSON（claude/qoder/trae/lingma/workbuddy/doubao 之间）：直接复制，merge 由管线处理
@@ -497,13 +497,14 @@ fn merge_mcp_toml_into_target(
     if existing.trim().is_empty() {
         return Ok(result);
     }
-    let merged = crate::converter::converters::mcp::merge_mcp_servers_toml(&existing, &result.content)
-        .map_err(|e| {
-            anyhow::anyhow!(
-                "合并 MCP 配置失败，已拒绝写入 {}: {e}",
-                target_path.display()
-            )
-        })?;
+    let merged =
+        crate::converter::converters::mcp::merge_mcp_servers_toml(&existing, &result.content)
+            .map_err(|e| {
+                anyhow::anyhow!(
+                    "合并 MCP 配置失败，已拒绝写入 {}: {e}",
+                    target_path.display()
+                )
+            })?;
     Ok(ConversionResult {
         content: merged,
         manual_review_required: result.manual_review_required,
@@ -512,7 +513,10 @@ fn merge_mcp_toml_into_target(
 }
 
 /// mcp merge: 目标文件已存在 JSON 时合并 mcpServers（保留已有 server，同名以迁移内容为准）
-fn merge_mcp_into_target(target_path: &std::path::Path, result: ConversionResult) -> anyhow::Result<ConversionResult> {
+fn merge_mcp_into_target(
+    target_path: &std::path::Path,
+    result: ConversionResult,
+) -> anyhow::Result<ConversionResult> {
     let existing = std::fs::read_to_string(target_path).unwrap_or_default();
     if existing.trim().is_empty() {
         return Ok(result);
@@ -527,13 +531,11 @@ fn merge_mcp_into_target(target_path: &std::path::Path, result: ConversionResult
 
 /// 合并两份 mcpServers JSON（保留 base 已有 server，同名 key 以 incoming 为准）
 fn merge_mcp_servers_json(base: &str, incoming: &str) -> anyhow::Result<String> {
-    let mut out: serde_json::Value =
-        serde_json::from_str(base).context("解析已有 MCP 配置失败")?;
+    let mut out: serde_json::Value = serde_json::from_str(base).context("解析已有 MCP 配置失败")?;
     if !out.is_object() {
         out = serde_json::json!({});
     }
-    let inc: serde_json::Value =
-        serde_json::from_str(incoming).context("解析迁移 MCP 配置失败")?;
+    let inc: serde_json::Value = serde_json::from_str(incoming).context("解析迁移 MCP 配置失败")?;
     let inc_servers = inc
         .get("mcpServers")
         .cloned()
@@ -560,10 +562,7 @@ fn merge_mcp_servers_json(base: &str, incoming: &str) -> anyhow::Result<String> 
 ///
 /// 集中定义，供写入（`write_workbuddy_rules_reference`）与备份（main.rs apply）共用，
 /// 避免两处逻辑漂移导致"写入了却没备份"或反之。
-pub fn workbuddy_rules_path<T: TargetAdapter>(
-    target: &T,
-    source_path: &str,
-) -> PathBuf {
+pub fn workbuddy_rules_path<T: TargetAdapter>(target: &T, source_path: &str) -> PathBuf {
     let source_name = if source_path.contains(".codex") {
         "codex"
     } else {
@@ -624,13 +623,16 @@ fn wrap_managed_block(
 ) -> anyhow::Result<ConversionResult> {
     let scope = managed_block_scope(target_name, kind);
     let existing = std::fs::read_to_string(target_path).unwrap_or_default();
-    match crate::safety::managed_block::upsert_managed_block(&existing, &scope, &conversion.content) {
+    match crate::safety::managed_block::upsert_managed_block(&existing, &scope, &conversion.content)
+    {
         Ok(result) => Ok(ConversionResult {
             content: result.content,
             manual_review_required: conversion.manual_review_required,
             manual_notes: conversion.manual_notes,
         }),
-        Err(e) => Err(anyhow::anyhow!("托管块标记异常，拒绝写入 {target_path:?}: {e}")),
+        Err(e) => Err(anyhow::anyhow!(
+            "托管块标记异常，拒绝写入 {target_path:?}: {e}"
+        )),
     }
 }
 
@@ -743,7 +745,8 @@ pub fn validate_target<T: TargetAdapter>(target: &T, surfaces: &[ConfigSurface])
                         }
                     } else {
                         let scope = managed_block_scope(target.name(), surface.kind.as_str());
-                        match crate::safety::managed_block::extract_managed_block(&content, &scope) {
+                        match crate::safety::managed_block::extract_managed_block(&content, &scope)
+                        {
                             Some(body) if !body.trim().is_empty() => {
                                 notes.push("托管块存在且非空".into());
                             }
@@ -787,13 +790,15 @@ pub fn validate_target<T: TargetAdapter>(target: &T, surfaces: &[ConfigSurface])
                 if let Ok(content) = std::fs::read_to_string(&path) {
                     // 计数方式随目标格式: cordis patch 数托管块内的插件条目，其余数 mcpServers/mcp_servers
                     let count = match target.mcp_format() {
-                        McpFormat::CordisYamlPluginList => mcp_yaml::extract_cordis_mcp_block(&content)
-                            .map(|b| {
-                                b.lines()
-                                    .filter(|l| l.trim_start().starts_with("- id:"))
-                                    .count()
-                            })
-                            .unwrap_or(0),
+                        McpFormat::CordisYamlPluginList => {
+                            mcp_yaml::extract_cordis_mcp_block(&content)
+                                .map(|b| {
+                                    b.lines()
+                                        .filter(|l| l.trim_start().starts_with("- id:"))
+                                        .count()
+                                })
+                                .unwrap_or(0)
+                        }
                         _ => count_mcp_servers(&content, &path),
                     };
                     if count == 0 {
@@ -869,7 +874,9 @@ mod tests {
 
     #[test]
     fn is_toml_path_only_matches_extension_not_filename_keyword() {
-        assert!(is_toml_path(std::path::Path::new("/home/u/.codex/config.toml")));
+        assert!(is_toml_path(std::path::Path::new(
+            "/home/u/.codex/config.toml"
+        )));
         assert!(is_toml_path(std::path::Path::new("/x/CONFIG.TOML")));
         // 关键：名字里带 toml 但扩展名是 json 的，绝不能当 TOML 处理
         assert!(!is_toml_path(std::path::Path::new("/x/toml-notes.json")));
@@ -1044,11 +1051,8 @@ command = \"keep\"
     /// 回归（P1 #6）: 重复迁移更新同一托管块，不可叠加第二个块
     #[test]
     fn wrap_managed_block_reuses_same_scope_on_repeat_migration() {
-        let dir = std::env::temp_dir().join(format!(
-            "migrator-scope-{}-{}",
-            std::process::id(),
-            line!()
-        ));
+        let dir =
+            std::env::temp_dir().join(format!("migrator-scope-{}-{}", std::process::id(), line!()));
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("AGENTS.md");
         let v1 = wrap_managed_block(
@@ -1062,9 +1066,10 @@ command = \"keep\"
             },
         )
         .unwrap();
-        assert!(v1
-            .content
-            .contains(&begin_marker("migrator:qoder:instructions")));
+        assert!(
+            v1.content
+                .contains(&begin_marker("migrator:qoder:instructions"))
+        );
         std::fs::write(&path, &v1.content).unwrap();
         // 第二次迁移（即便是不同源）应更新同一块，不得叠加第二个块
         let v2 = wrap_managed_block(
@@ -1093,11 +1098,8 @@ command = \"keep\"
     /// 回归（P1 #7）: validate 检出托管块存在 / 缺失
     #[test]
     fn validate_reports_managed_block_present_and_missing() {
-        let dir = std::env::temp_dir().join(format!(
-            "migrator-val-{}-{}",
-            std::process::id(),
-            line!()
-        ));
+        let dir =
+            std::env::temp_dir().join(format!("migrator-val-{}-{}", std::process::id(), line!()));
         std::fs::create_dir_all(&dir).unwrap();
         let inst = dir.join("AGENTS.md");
         let with_block = wrap_managed_block(
@@ -1122,7 +1124,11 @@ command = \"keep\"
             files,
             user_dir: dir.clone(),
         };
-        let surfaces = vec![ConfigSurface::new(SurfaceKind::Instructions, "x/AGENTS.md", true)];
+        let surfaces = vec![ConfigSurface::new(
+            SurfaceKind::Instructions,
+            "x/AGENTS.md",
+            true,
+        )];
         let reports = validate_target(&stub, &surfaces);
         assert_eq!(reports.len(), 1);
         assert_eq!(reports[0].status, ReportStatus::Added);
@@ -1368,12 +1374,21 @@ bearer_token_env_var = \"GITHUB_TOKEN\"
     #[test]
     fn count_servers_in_conversion_handles_all_formats() {
         let cordis = "- id: mcp-a\n  name: x\n- id: mcp-b\n  name: y\n";
-        assert_eq!(count_servers_in_conversion(McpFormat::CordisYamlPluginList, cordis), 2);
-        assert_eq!(count_servers_in_conversion(McpFormat::CordisYamlPluginList, ""), 0);
+        assert_eq!(
+            count_servers_in_conversion(McpFormat::CordisYamlPluginList, cordis),
+            2
+        );
+        assert_eq!(
+            count_servers_in_conversion(McpFormat::CordisYamlPluginList, ""),
+            0
+        );
 
         let json = r#"{"mcpServers":{"a":{"command":"x"},"b":{"command":"y"}}}"#;
         assert_eq!(count_servers_in_conversion(McpFormat::Json, json), 2);
-        assert_eq!(count_servers_in_conversion(McpFormat::Json, r#"{"mcpServers":{}}"#), 0);
+        assert_eq!(
+            count_servers_in_conversion(McpFormat::Json, r#"{"mcpServers":{}}"#),
+            0
+        );
 
         let toml = "[mcp_servers.a]\ncommand = \"x\"\n[mcp_servers.b]\ncommand = \"y\"\n";
         assert_eq!(count_servers_in_conversion(McpFormat::Toml, toml), 2);

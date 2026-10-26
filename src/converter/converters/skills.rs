@@ -50,9 +50,9 @@ pub fn convert_skill(source_content: &str) -> (String, bool, Vec<String>) {
                     return false;
                 }
                 skip_indented = false;
-                let is_downgraded = downgraded
-                    .iter()
-                    .any(|f| trimmed.starts_with(&format!("{f}:")) || trimmed.starts_with(&format!("{f} :")));
+                let is_downgraded = downgraded.iter().any(|f| {
+                    trimmed.starts_with(&format!("{f}:")) || trimmed.starts_with(&format!("{f} :"))
+                });
                 if is_downgraded {
                     skip_indented = true;
                     return false;
@@ -85,10 +85,7 @@ pub fn convert_skill(source_content: &str) -> (String, bool, Vec<String>) {
         );
         out.push('\n');
         out.push_str(&manual_block(&reason, &guidance));
-        manual_notes.push(format!(
-            "fields downgraded: {}",
-            downgraded.join(", ")
-        ));
+        manual_notes.push(format!("fields downgraded: {}", downgraded.join(", ")));
     }
 
     let needs_review = !downgraded.is_empty();

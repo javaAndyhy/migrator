@@ -421,7 +421,10 @@ fn pick_dsh_profile(profiles_root: &Path, patch_file: &str) -> String {
         })
         .unwrap_or_default();
     names.sort();
-    names.into_iter().next().unwrap_or_else(|| DEFAULT_PROFILE.to_string())
+    names
+        .into_iter()
+        .next()
+        .unwrap_or_else(|| DEFAULT_PROFILE.to_string())
 }
 
 #[cfg(test)]

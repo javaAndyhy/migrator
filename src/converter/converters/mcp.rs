@@ -18,7 +18,7 @@
 //!   { "mcpServers": { "<name>": { "command", "args", "env", "url", "headers" } } }
 
 use serde::Deserialize;
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 use std::collections::BTreeMap;
 
 /// Codex config.toml 顶层（只关心 mcp_servers，其余段忽略）
@@ -63,7 +63,9 @@ pub fn convert_codex_mcp(config_toml: &str) -> (String, bool, Vec<String>) {
             return (
                 empty_mcp_json(),
                 true,
-                vec![format!("Codex config.toml 解析失败，未迁移任何 MCP server: {e}")],
+                vec![format!(
+                    "Codex config.toml 解析失败，未迁移任何 MCP server: {e}"
+                )],
             );
         }
     };
@@ -152,7 +154,7 @@ pub fn convert_codex_mcp(config_toml: &str) -> (String, bool, Vec<String>) {
 ///   headers.Authorization("Bearer {env:X}") → bearer_token_env_var = "X"（近似，审查）
 ///   type/_setup（sse/http/streamable-http 特有）→ 丢弃并标记审查
 pub fn convert_mcp_json_to_toml(json_content: &str) -> (String, bool, Vec<String>) {
-    use toml_edit::{value, Array, DocumentMut, Item, Table};
+    use toml_edit::{Array, DocumentMut, Item, Table, value};
 
     let mut manual_notes = Vec::new();
     let v: Value = match serde_json::from_str(json_content) {
@@ -193,15 +195,14 @@ pub fn convert_mcp_json_to_toml(json_content: &str) -> (String, bool, Vec<String
         if let Some(cwd) = server.get("cwd").and_then(|c| c.as_str()) {
             tbl.insert("cwd", value(cwd));
         }
-        if let Some(headers) = server.get("headers").and_then(|h| h.as_object()) {
-            if let Some(auth) = headers.get("Authorization").and_then(|a| a.as_str()) {
-                if let Some(var) = extract_env_var(auth) {
-                    tbl.insert("bearer_token_env_var", value(var.as_str()));
-                    manual_notes.push(format!(
-                        "mcp server {name}: Authorization header -> bearer_token_env_var (approx)"
-                    ));
-                }
-            }
+        if let Some(headers) = server.get("headers").and_then(|h| h.as_object())
+            && let Some(auth) = headers.get("Authorization").and_then(|a| a.as_str())
+            && let Some(var) = extract_env_var(auth)
+        {
+            tbl.insert("bearer_token_env_var", value(var.as_str()));
+            manual_notes.push(format!(
+                "mcp server {name}: Authorization header -> bearer_token_env_var (approx)"
+            ));
         }
         // env 作为嵌套子表输出（[mcp_servers.<name>.env]）
         if let Some(env) = server.get("env").and_then(|e| e.as_object()) {
@@ -612,7 +613,10 @@ command = "new"
         let incoming = "[mcp_servers.dup]\ncommand = \"new\"\n";
         let merged = merge_mcp_servers_toml(existing, incoming).unwrap();
         let parsed: toml::Value = toml::from_str(&merged).unwrap();
-        assert_eq!(parsed["mcp_servers"]["dup"]["command"].as_str(), Some("new"));
+        assert_eq!(
+            parsed["mcp_servers"]["dup"]["command"].as_str(),
+            Some("new")
+        );
     }
 
     #[test]
@@ -625,8 +629,8 @@ command = "new"
     #[test]
     fn toml_merge_rejects_unparsable_target() {
         // 目标文件损坏时必须拒绝写入，而不是覆盖掉
-        let err = merge_mcp_servers_toml("[broken\n", "[mcp_servers.a]\ncommand = \"x\"\n")
-            .unwrap_err();
+        let err =
+            merge_mcp_servers_toml("[broken\n", "[mcp_servers.a]\ncommand = \"x\"\n").unwrap_err();
         assert!(err.contains("拒绝写入"), "错误信息需说明拒绝写入: {err}");
     }
 

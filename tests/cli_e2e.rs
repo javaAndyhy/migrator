@@ -38,7 +38,9 @@ fn tmp_base() -> PathBuf {
 
 /// 对真实 ~/.codex/config.toml 做字节级快照（只读，若存在）
 fn real_codex_snapshot() -> Option<Vec<u8>> {
-    let home = std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")).ok()?;
+    let home = std::env::var("HOME")
+        .or_else(|_| std::env::var("USERPROFILE"))
+        .ok()?;
     let p = PathBuf::from(home).join(".codex").join("config.toml");
     fs::read(&p).ok()
 }
@@ -102,9 +104,17 @@ fn scaffold(kind: &str) -> (PathBuf, PathBuf) {
     )
     .unwrap();
     fs::create_dir_all(claude_proj.join("agents")).unwrap();
-    fs::write(claude_proj.join("agents").join("release-lead.md"), "# release lead\n").unwrap();
+    fs::write(
+        claude_proj.join("agents").join("release-lead.md"),
+        "# release lead\n",
+    )
+    .unwrap();
     fs::create_dir_all(claude_proj.join("hooks")).unwrap();
-    fs::write(claude_proj.join("hooks").join("hooks.json"), r#"{"hooks":[]}"#).unwrap();
+    fs::write(
+        claude_proj.join("hooks").join("hooks.json"),
+        r#"{"hooks":[]}"#,
+    )
+    .unwrap();
     fs::create_dir_all(claude_proj.join("commands")).unwrap();
     fs::write(
         claude_proj.join("commands").join("review.md"),
@@ -134,12 +144,26 @@ fn e2e_scan_enumerates_all_seven_surfaces_and_uses_embedded_mapping() {
     );
 
     // 7 类配置面都被枚举
-    for kind in ["instructions", "mcp", "skills", "agents", "memory", "hooks", "commands"] {
-        assert!(out.contains(kind), "scan 输出缺少配置面标记 `{kind}`；输出:\n{out}");
+    for kind in [
+        "instructions",
+        "mcp",
+        "skills",
+        "agents",
+        "memory",
+        "hooks",
+        "commands",
+    ] {
+        assert!(
+            out.contains(kind),
+            "scan 输出缺少配置面标记 `{kind}`；输出:\n{out}"
+        );
     }
     // 全部存在（我们刚 scaffold 了完整 Claude 配置）
     let present = out.matches("[✓]").count();
-    assert!(present >= 7, "应至少标记 7 个已存在的配置面，实际 {present}；输出:\n{out}");
+    assert!(
+        present >= 7,
+        "应至少标记 7 个已存在的配置面，实际 {present}；输出:\n{out}"
+    );
 
     assert_codex_untouched(prev);
 }
@@ -205,7 +229,9 @@ fn e2e_apply_backs_up_preexisting_then_restore_rolls_back() {
     let (ok, out) = run(
         &home,
         &project,
-        &["--source", "claude", "--target", "qoder", "restore", "--yes"],
+        &[
+            "--source", "claude", "--target", "qoder", "restore", "--yes",
+        ],
     );
     assert!(ok, "restore 应成功；输出:\n{out}");
     assert!(
@@ -268,7 +294,13 @@ fn e2e_unknown_source_errors_explicitly() {
     let (ok, out) = run(
         &home,
         &project,
-        &["--source", "definitely-not-a-platform", "--target", "qoder", "scan"],
+        &[
+            "--source",
+            "definitely-not-a-platform",
+            "--target",
+            "qoder",
+            "scan",
+        ],
     );
     assert!(!ok, "未知 --source 必须失败；输出:\n{out}");
     // 注意：main 先跑 load_mapping，未知 source 会先被 builtin() 的「不支持的迁移组合」

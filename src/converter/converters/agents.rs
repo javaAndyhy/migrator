@@ -30,7 +30,8 @@ pub fn convert_agent(source_content: &str) -> (String, bool, Vec<String>) {
     let mut model: Option<String> = None;
 
     // 判断输入格式: TOML (name = "...") vs YAML frontmatter (---\nname: ...)
-    let is_toml = source_content.contains("name =") && !source_content.trim_start().starts_with("---");
+    let is_toml =
+        source_content.contains("name =") && !source_content.trim_start().starts_with("---");
 
     if is_toml {
         // TOML 格式: 逐行解析顶层 key = value
@@ -95,10 +96,8 @@ pub fn convert_agent(source_content: &str) -> (String, bool, Vec<String>) {
                     if let Some(item) = t.strip_prefix('-') {
                         tools_list.push(item.trim().to_string());
                     }
-                } else if in_disallowed {
-                    if let Some(item) = t.strip_prefix('-') {
-                        disallowed_list.push(item.trim().to_string());
-                    }
+                } else if in_disallowed && let Some(item) = t.strip_prefix('-') {
+                    disallowed_list.push(item.trim().to_string());
                 }
             }
             if !tools_list.is_empty() {
@@ -138,7 +137,11 @@ pub fn convert_agent(source_content: &str) -> (String, bool, Vec<String>) {
     let body_text = if is_toml {
         extract_toml_instructions(source_content)
     } else {
-        split_agent_frontmatter(source_content).1.unwrap_or("").trim().to_string()
+        split_agent_frontmatter(source_content)
+            .1
+            .unwrap_or("")
+            .trim()
+            .to_string()
     };
     if !body_text.is_empty() {
         out.push_str(&body_text);
@@ -165,7 +168,7 @@ pub fn convert_agent(source_content: &str) -> (String, bool, Vec<String>) {
             caveats.join("\n- ")
         );
         out.push('\n');
-        out.push_str(&manual_block(&reason.to_string(), &guidance));
+        out.push_str(&manual_block(reason, &guidance));
         for c in caveats {
             manual_notes.push(c.to_string());
         }
@@ -206,7 +209,9 @@ pub fn convert_agent_to_toml(source_content: &str) -> (String, bool, Vec<String>
                     tools.push(v.trim_start_matches('-').trim().to_string());
                 } else {
                     tools.extend(
-                        v.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()),
+                        v.split(',')
+                            .map(|s| s.trim().to_string())
+                            .filter(|s| !s.is_empty()),
                     );
                 }
                 in_tools_list = true;
@@ -242,9 +247,8 @@ pub fn convert_agent_to_toml(source_content: &str) -> (String, bool, Vec<String>
         out.push_str("\n\"\"\"\n");
     }
 
-    manual_notes.push(
-        "agent converted md frontmatter -> Codex TOML; sandbox semantics defaulted".into(),
-    );
+    manual_notes
+        .push("agent converted md frontmatter -> Codex TOML; sandbox semantics defaulted".into());
     let needs_review = true;
 
     (out, needs_review, manual_notes)

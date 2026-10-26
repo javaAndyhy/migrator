@@ -104,7 +104,12 @@ impl QoderTarget {
         project_dir: impl Into<PathBuf>,
         project_root_dir: impl Into<PathBuf>,
     ) -> Self {
-        Self::new(TargetLayout::qoder(), user_dir, project_dir, project_root_dir)
+        Self::new(
+            TargetLayout::qoder(),
+            user_dir,
+            project_dir,
+            project_root_dir,
+        )
     }
 
     pub fn qoder_detect(current_dir: &Path) -> Self {
@@ -146,12 +151,13 @@ impl TargetAdapter for LayoutTarget {
             return match kind {
                 SurfaceKind::Instructions => base.join(self.layout.instructions_file),
                 SurfaceKind::Mcp => base.join(self.layout.mcp_file),
-                SurfaceKind::Skills => {
-                    base.join(self.layout.skills_dir).join(sub_path_after(rel, "skills"))
-                }
+                SurfaceKind::Skills => base
+                    .join(self.layout.skills_dir)
+                    .join(sub_path_after(rel, "skills")),
                 SurfaceKind::Commands => {
                     let name = file_stem_of(sub_path_after(rel, "commands"));
-                    base.join(self.layout.skills_dir).join(format!("{name}/SKILL.md"))
+                    base.join(self.layout.skills_dir)
+                        .join(format!("{name}/SKILL.md"))
                 }
                 SurfaceKind::Agents => {
                     let name = file_stem_of(sub_path_after(rel, "agents"));
@@ -211,8 +217,7 @@ impl TargetAdapter for LayoutTarget {
                         .join(self.layout.agents_dir)
                         .join(format!("{name}.toml"))
                 } else {
-                    root.join(self.layout.agents_dir)
-                        .join(format!("{name}.md"))
+                    root.join(self.layout.agents_dir).join(format!("{name}.md"))
                 }
             }
             SurfaceKind::Memory => {
@@ -317,7 +322,10 @@ mod tests {
         // 名字含 "mcp" 的 skill 会被写成 .mcp.json → 技能永久丢失。
         let t = qoder_target();
         assert_eq!(
-            t.target_path(SurfaceKind::Skills, "~/.codex/skills/mtkf-mcp-tool/SKILL.md"),
+            t.target_path(
+                SurfaceKind::Skills,
+                "~/.codex/skills/mtkf-mcp-tool/SKILL.md"
+            ),
             PathBuf::from("./.qoder/skills/mtkf-mcp-tool/SKILL.md")
         );
         assert_eq!(
@@ -425,7 +433,12 @@ mod tests {
     #[test]
     fn workbuddy_mcp_goes_to_user_root() {
         // WorkBuddy MCP 必须写入用户级官方路径 ~/.workbuddy/mcp.json（非项目级）
-        let t = LayoutTarget::new(TargetLayout::workbuddy(), "~/.workbuddy", "./.workbuddy", "./");
+        let t = LayoutTarget::new(
+            TargetLayout::workbuddy(),
+            "~/.workbuddy",
+            "./.workbuddy",
+            "./",
+        );
         assert_eq!(
             t.target_path(SurfaceKind::Mcp, "~/.codex/config.toml ([mcp_servers])"),
             PathBuf::from("~/.workbuddy/mcp.json")
@@ -509,7 +522,12 @@ mod tests {
             .map(std::path::PathBuf::from)
             .unwrap_or_else(|_| std::env::temp_dir());
         let dir = base.join(format!("migrator-tgt-{}", std::process::id()));
-        let t = LayoutTarget::new(TargetLayout::qoder(), dir.join("home"), dir.join("proj"), dir.join("proj"));
+        let t = LayoutTarget::new(
+            TargetLayout::qoder(),
+            dir.join("home"),
+            dir.join("proj"),
+            dir.join("proj"),
+        );
         let path = t.target_path(SurfaceKind::Instructions, ".claude/CLAUDE.md");
         let result = ConversionResult {
             content: "synced".into(),

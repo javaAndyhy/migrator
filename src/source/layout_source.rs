@@ -62,10 +62,7 @@ impl LayoutSource {
 
     /// 用户级路径前缀（如 `~/.workbuddy/` / `~/.dsh/`）
     fn user_prefix(&self) -> String {
-        format!(
-            "~/{}/",
-            self.layout.user_dir_name.trim_start_matches("~/")
-        )
+        format!("~/{}/", self.layout.user_dir_name.trim_start_matches("~/"))
     }
 
     /// MCP 配置实际路径（dsh 需解析 profile 层）
@@ -83,20 +80,22 @@ impl LayoutSource {
         }
         // 项目配置根前缀（.qoder/ / .trae/ / .lingma/）
         let prefix = self.dir_prefix();
-        if !prefix.is_empty() {
-            if let Some(rest) = source_path.strip_prefix(prefix) {
-                return self.project_dir.join(rest);
-            }
+        if !prefix.is_empty()
+            && let Some(rest) = source_path.strip_prefix(prefix)
+        {
+            return self.project_dir.join(rest);
         }
         // 手动迁移包（豆包）: 项目根下 .doubao/manual/
-        if let Some(dir) = self.layout.manual_bundle_dir {
-            if source_path.starts_with(dir) {
-                return self.project_root_dir.join(source_path);
-            }
+        if let Some(dir) = self.layout.manual_bundle_dir
+            && source_path.starts_with(dir)
+        {
+            return self.project_root_dir.join(source_path);
         }
         if source_path.ends_with("MEMORY.md") || source_path.contains("rules/") {
             // workbuddy 用户级指令/规则
-            return self.user_dir.join(source_path.trim_start_matches(up.as_str()));
+            return self
+                .user_dir
+                .join(source_path.trim_start_matches(up.as_str()));
         }
         // 无前缀的相对路径（如项目根 AGENTS.md）→ 项目根
         self.project_root_dir.join(source_path)
@@ -113,7 +112,10 @@ impl LayoutSource {
             )
         } else if let Some(dir) = self.layout.manual_bundle_dir {
             // 手动迁移包（豆包）: .doubao/manual/instructions.md
-            let p = self.project_root_dir.join(dir).join(self.layout.instructions_file);
+            let p = self
+                .project_root_dir
+                .join(dir)
+                .join(self.layout.instructions_file);
             ConfigSurface::new(
                 SurfaceKind::Instructions,
                 format!("{dir}/{}", self.layout.instructions_file),
@@ -184,11 +186,19 @@ impl LayoutSource {
                     }
                 }
                 if !found {
-                    out.push(ConfigSurface::new(SurfaceKind::Agents, format!("{prefix}/"), false));
+                    out.push(ConfigSurface::new(
+                        SurfaceKind::Agents,
+                        format!("{prefix}/"),
+                        false,
+                    ));
                 }
             }
         } else {
-            out.push(ConfigSurface::new(SurfaceKind::Agents, format!("{prefix}/"), false));
+            out.push(ConfigSurface::new(
+                SurfaceKind::Agents,
+                format!("{prefix}/"),
+                false,
+            ));
         }
         out
     }
@@ -211,11 +221,19 @@ impl LayoutSource {
                     }
                 }
                 if !found {
-                    out.push(ConfigSurface::new(SurfaceKind::Skills, format!("{prefix}/"), false));
+                    out.push(ConfigSurface::new(
+                        SurfaceKind::Skills,
+                        format!("{prefix}/"),
+                        false,
+                    ));
                 }
             }
         } else {
-            out.push(ConfigSurface::new(SurfaceKind::Skills, format!("{prefix}/"), false));
+            out.push(ConfigSurface::new(
+                SurfaceKind::Skills,
+                format!("{prefix}/"),
+                false,
+            ));
         }
         out
     }
@@ -311,21 +329,38 @@ mod tests {
         let qoder = proj.join(".qoder");
         fs::create_dir_all(qoder.join("skills/s1")).unwrap();
         fs::write(proj.join("AGENTS.md"), "qoder rules").unwrap();
-        fs::write(qoder.join(".mcp.json"), r#"{"mcpServers":{"q1":{"command":"npx"}}}"#).unwrap();
-        fs::write(qoder.join("skills/s1/SKILL.md"), "---\nname: s1\n---\nSkill 1.").unwrap();
+        fs::write(
+            qoder.join(".mcp.json"),
+            r#"{"mcpServers":{"q1":{"command":"npx"}}}"#,
+        )
+        .unwrap();
+        fs::write(
+            qoder.join("skills/s1/SKILL.md"),
+            "---\nname: s1\n---\nSkill 1.",
+        )
+        .unwrap();
 
         let src = LayoutSource::detect(TargetLayout::qoder(), &proj);
         let surfaces = src.scan();
         // instructions 在项目根
-        let instr = surfaces.iter().find(|s| s.kind == SurfaceKind::Instructions).unwrap();
+        let instr = surfaces
+            .iter()
+            .find(|s| s.kind == SurfaceKind::Instructions)
+            .unwrap();
         assert!(instr.present);
         assert!(instr.source_path.ends_with("AGENTS.md"));
         // mcp 在 .qoder/.mcp.json
-        let mcp = surfaces.iter().find(|s| s.kind == SurfaceKind::Mcp).unwrap();
+        let mcp = surfaces
+            .iter()
+            .find(|s| s.kind == SurfaceKind::Mcp)
+            .unwrap();
         assert!(mcp.present);
         assert!(mcp.source_path.contains(".qoder/.mcp.json"));
         // skills 枚举
-        let skills: Vec<_> = surfaces.iter().filter(|s| s.kind == SurfaceKind::Skills).collect();
+        let skills: Vec<_> = surfaces
+            .iter()
+            .filter(|s| s.kind == SurfaceKind::Skills)
+            .collect();
         assert_eq!(skills.len(), 1);
         assert!(src.read(skills[0]).unwrap().contains("Skill 1."));
         fs::remove_dir_all(&dir).unwrap();
@@ -338,8 +373,16 @@ mod tests {
         let wb = home.join(".workbuddy");
         fs::create_dir_all(wb.join("skills/s1")).unwrap();
         fs::write(wb.join("MEMORY.md"), "# User Memory\n").unwrap();
-        fs::write(wb.join("mcp.json"), r#"{"mcpServers":{"w1":{"command":"npx"}}}"#).unwrap();
-        fs::write(wb.join("skills/s1/SKILL.md"), "---\nname: s1\n---\nWB skill.").unwrap();
+        fs::write(
+            wb.join("mcp.json"),
+            r#"{"mcpServers":{"w1":{"command":"npx"}}}"#,
+        )
+        .unwrap();
+        fs::write(
+            wb.join("skills/s1/SKILL.md"),
+            "---\nname: s1\n---\nWB skill.",
+        )
+        .unwrap();
 
         // 直接构造（不依赖 HOME 环境变量）
         let src = LayoutSource::new(
@@ -349,10 +392,16 @@ mod tests {
             dir.join("proj"),
         );
         let surfaces = src.scan();
-        let instr = surfaces.iter().find(|s| s.kind == SurfaceKind::Instructions).unwrap();
+        let instr = surfaces
+            .iter()
+            .find(|s| s.kind == SurfaceKind::Instructions)
+            .unwrap();
         assert!(instr.present);
         assert!(instr.source_path.contains("MEMORY.md"));
-        let mcp = surfaces.iter().find(|s| s.kind == SurfaceKind::Mcp).unwrap();
+        let mcp = surfaces
+            .iter()
+            .find(|s| s.kind == SurfaceKind::Mcp)
+            .unwrap();
         assert!(mcp.present);
         assert!(mcp.source_path.contains("~/.workbuddy/mcp.json"));
         fs::remove_dir_all(&dir).unwrap();
@@ -367,7 +416,11 @@ mod tests {
         fs::create_dir_all(dsh.join("profiles/desktop")).unwrap();
         fs::create_dir_all(dsh.join("skills/s1")).unwrap();
         fs::write(dsh.join("AGENTS.md"), "# dsh rules\n").unwrap();
-        fs::write(dsh.join("skills/s1/SKILL.md"), "---\nname: s1\n---\ndsh skill.").unwrap();
+        fs::write(
+            dsh.join("skills/s1/SKILL.md"),
+            "---\nname: s1\n---\ndsh skill.",
+        )
+        .unwrap();
         // 用户自己的 patch 条目 + 我们的托管块（后者才是迁移源）
         let patch = format!(
             "- id: llm-pi-ai\n  name: '@deepseek-ai/dsh-llm-pi-ai'\n  config:\n    providers: {{}}\n\
@@ -386,22 +439,34 @@ mod tests {
             proj.clone(),
         );
         let surfaces = src.scan();
-        let instr = surfaces.iter().find(|s| s.kind == SurfaceKind::Instructions).unwrap();
+        let instr = surfaces
+            .iter()
+            .find(|s| s.kind == SurfaceKind::Instructions)
+            .unwrap();
         assert!(instr.present);
         assert_eq!(instr.source_path, "~/.dsh/AGENTS.md");
-        let mcp = surfaces.iter().find(|s| s.kind == SurfaceKind::Mcp).unwrap();
+        let mcp = surfaces
+            .iter()
+            .find(|s| s.kind == SurfaceKind::Mcp)
+            .unwrap();
         assert!(mcp.present);
         assert_eq!(mcp.source_path, "~/.dsh/profiles/desktop/cordis.patch.yml");
         // 读取必须产出标准 mcpServers JSON（含 !!js → {env:VAR} 还原）
         let json = src.read(mcp).unwrap();
         let v: serde_json::Value = serde_json::from_str(&json).unwrap();
-        assert_eq!(v["mcpServers"]["github"]["url"], "https://api.githubcopilot.com/mcp/");
+        assert_eq!(
+            v["mcpServers"]["github"]["url"],
+            "https://api.githubcopilot.com/mcp/"
+        );
         assert_eq!(
             v["mcpServers"]["github"]["headers"]["Authorization"],
             "Bearer {env:GITHUB_TOKEN}"
         );
         // skills 枚举
-        let skills: Vec<_> = surfaces.iter().filter(|s| s.kind == SurfaceKind::Skills).collect();
+        let skills: Vec<_> = surfaces
+            .iter()
+            .filter(|s| s.kind == SurfaceKind::Skills)
+            .collect();
         assert_eq!(skills.len(), 1);
         assert!(skills[0].source_path.starts_with("~/.dsh/skills/"));
         fs::remove_dir_all(&dir).unwrap();
@@ -428,10 +493,16 @@ mod tests {
             proj.clone(),
         );
         let surfaces = src.scan();
-        let instr = surfaces.iter().find(|s| s.kind == SurfaceKind::Instructions).unwrap();
+        let instr = surfaces
+            .iter()
+            .find(|s| s.kind == SurfaceKind::Instructions)
+            .unwrap();
         assert!(instr.present);
         assert!(instr.source_path.contains("instructions.md"));
-        let mcp = surfaces.iter().find(|s| s.kind == SurfaceKind::Mcp).unwrap();
+        let mcp = surfaces
+            .iter()
+            .find(|s| s.kind == SurfaceKind::Mcp)
+            .unwrap();
         assert!(mcp.present);
         assert!(mcp.source_path.ends_with(".doubao/manual/connectors.json"));
         assert!(src.read(mcp).unwrap().contains("context7"));
@@ -475,9 +546,15 @@ mod tests {
             );
         }
         // 国内平台无 commands/hooks/memory 对应物 → 这些面 present=false（被 run_migration 跳过）
-        let cmd = surfaces.iter().find(|s| s.kind == SurfaceKind::Commands).unwrap();
+        let cmd = surfaces
+            .iter()
+            .find(|s| s.kind == SurfaceKind::Commands)
+            .unwrap();
         assert!(!cmd.present, "qoder 无 commands 目录，应 present=false");
-        let mem = surfaces.iter().find(|s| s.kind == SurfaceKind::Memory).unwrap();
+        let mem = surfaces
+            .iter()
+            .find(|s| s.kind == SurfaceKind::Memory)
+            .unwrap();
         assert!(!mem.present, "qoder 无 memory 目录，应 present=false");
         fs::remove_dir_all(&dir).unwrap();
     }

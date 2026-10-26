@@ -1,10 +1,13 @@
 use clap::{Parser, Subcommand};
 use migrator::converter::mapping::MappingTable;
 use migrator::model::{MigrationOptions, PlanScope, SurfaceKind};
-use migrator::pipeline::{dry_run_migration, plan_migration, run_migration, scan_sources, validate_target, workbuddy_rules_path};
+use migrator::pipeline::{
+    dry_run_migration, plan_migration, run_migration, scan_sources, validate_target,
+    workbuddy_rules_path,
+};
 use migrator::source::{ClaudeCodeSource, CodexSource, LayoutSource, SourceAdapter};
 use migrator::target::{LayoutTarget, TargetAdapter, TargetLayout};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// migrator — 双向 Agent 配置迁移引擎（Claude/Codex ↔ 国产平台）
 #[derive(Parser)]
@@ -131,29 +134,32 @@ fn load_mapping(
                 path.display()
             )
         })?;
-        println!("[映射表] 已加载 (--mapping): {} → {}", table.source, table.target);
+        println!(
+            "[映射表] 已加载 (--mapping): {} → {}",
+            table.source, table.target
+        );
         return Ok(table);
     }
 
     // 2. 用户级覆盖目录：与 CWD 无关，发布后的二进制靠它实现零代码扩展
-    if let Some(user_file) = MappingTable::user_mapping_file(source_name, target_name) {
-        if user_file.exists() {
-            let table = MappingTable::load_from_json(&user_file).map_err(|e| {
-                anyhow::anyhow!(
-                    "用户级映射表加载失败，已中止: {}\n原因: {e}\n\
+    if let Some(user_file) = MappingTable::user_mapping_file(source_name, target_name)
+        && user_file.exists()
+    {
+        let table = MappingTable::load_from_json(&user_file).map_err(|e| {
+            anyhow::anyhow!(
+                "用户级映射表加载失败，已中止: {}\n原因: {e}\n\
                      提示: 该文件是你主动放入覆盖目录的，静默忽略会让你以为它已生效。\n\
                      请修正或删除该文件后重试。",
-                    user_file.display()
-                )
-            })?;
-            println!(
-                "[映射表] 已加载 (用户级 {}): {} → {}",
-                user_file.display(),
-                table.source,
-                table.target
-            );
-            return Ok(table);
-        }
+                user_file.display()
+            )
+        })?;
+        println!(
+            "[映射表] 已加载 (用户级 {}): {} → {}",
+            user_file.display(),
+            table.source,
+            table.target
+        );
+        return Ok(table);
     }
 
     // 3. 仓库内相对路径（仅在项目根目录下运行时命中）
@@ -166,13 +172,21 @@ fn load_mapping(
                 default_file.display()
             )
         })?;
-        println!("[映射表] 已加载 ({}): {} → {}", default_file.display(), table.source, table.target);
+        println!(
+            "[映射表] 已加载 ({}): {} → {}",
+            default_file.display(),
+            table.source,
+            table.target
+        );
         return Ok(table);
     }
 
     // 4. 编译期内嵌表：保证任意 CWD / 任意安装方式下行为一致
     if let Some(table) = MappingTable::from_embedded(source_name, target_name) {
-        println!("[映射表] 已加载 (内嵌): {} → {}", table.source, table.target);
+        println!(
+            "[映射表] 已加载 (内嵌): {} → {}",
+            table.source, table.target
+        );
         return Ok(table);
     }
 
@@ -183,14 +197,13 @@ fn load_mapping(
 /// 选择源适配器: claude | codex | qoder | trae | lingma | workbuddy | dsh | doubao（双向）
 ///
 /// 未知 --source 显式报错，不再静默回退到 ClaudeCodeSource（避免"以为迁 A→B 实际走默认"）。
-fn build_source(source_name: &str, project: &PathBuf) -> anyhow::Result<Box<dyn SourceAdapter>> {
+fn build_source(source_name: &str, project: &Path) -> anyhow::Result<Box<dyn SourceAdapter>> {
     match source_name {
         "codex" => Ok(Box::new(CodexSource::detect())),
         "claude" | "claude-code" => Ok(Box::new(ClaudeCodeSource::detect(project))),
         // 反向迁移：国产平台作为源，用布局驱动读取
         "qoder" | "trae" | "lingma" | "workbuddy" | "dsh" | "deepseek-harness" | "doubao" => {
-            let layout = TargetLayout::by_name(source_name)
-                .expect("known platform layout");
+            let layout = TargetLayout::by_name(source_name).expect("known platform layout");
             Ok(Box::new(LayoutSource::detect(layout, project)))
         }
         _ => Err(anyhow::anyhow!(
@@ -200,7 +213,7 @@ fn build_source(source_name: &str, project: &PathBuf) -> anyhow::Result<Box<dyn 
 }
 
 /// 选择目标适配器: qoder | trae | lingma | workbuddy | dsh | doubao | claude | codex
-fn build_target(target_name: &str, project: &PathBuf) -> Result<LayoutTarget, anyhow::Error> {
+fn build_target(target_name: &str, project: &Path) -> Result<LayoutTarget, anyhow::Error> {
     match TargetLayout::by_name(target_name) {
         Some(layout) => Ok(LayoutTarget::detect(layout, project)),
         None => Err(anyhow::anyhow!(
@@ -365,7 +378,11 @@ fn main() -> Result<(), anyhow::Error> {
             }
         }
 
-        Commands::Restore { project, batch, yes } => {
+        Commands::Restore {
+            project,
+            batch,
+            yes,
+        } => {
             let backup_mgr = migrator::safety::backup::BackupManager::new(&project);
             if !yes {
                 // 演练

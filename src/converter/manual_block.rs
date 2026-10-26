@@ -53,7 +53,10 @@ mod tests {
 
     #[test]
     fn detect_manual_block() {
-        let content = format!("# Synced\n\n{}\n\nrest of file", manual_block("reason", "guide"));
+        let content = format!(
+            "# Synced\n\n{}\n\nrest of file",
+            manual_block("reason", "guide")
+        );
         assert!(contains_manual_block(&content));
         assert!(!contains_manual_block("plain content"));
     }
