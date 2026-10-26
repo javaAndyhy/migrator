@@ -14,6 +14,9 @@ use std::path::PathBuf;
 /// 备份目录名 — 契约
 pub const BACKUP_DIR_NAME: &str = ".migrator-backups";
 
+/// 同一毫秒内可分配的批次 ID 上限（`base`、`base-01` … `base-99`）
+const MAX_BATCH_ID_RETRIES: u32 = 99;
+
 /// 单个文件备份记录
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileBackup {
@@ -48,6 +51,9 @@ impl BackupManager {
     /// 创建一个备份批次：复制所有已存在的目标文件到新批次目录
     ///
     /// 返回批次 ID（时间戳）。无文件时返回 None（不创建空批次）。
+    ///
+    /// 批次目录用 `claim_batch_dir` 原子占位，因此同一毫秒内的连续备份
+    /// 会各自拿到独立目录，不会互相覆盖。
     pub fn create_batch(&self, target_files: &[PathBuf]) -> std::io::Result<Option<String>> {
         // 过滤出已存在的文件
         let existing: Vec<&PathBuf> = target_files.iter().filter(|p| p.exists()).collect();
@@ -55,8 +61,7 @@ impl BackupManager {
             return Ok(None);
         }
 
-        let batch_id = Self::timestamp();
-        let batch_dir = self.root.join(&batch_id);
+        let (batch_id, batch_dir) = self.claim_batch_dir()?;
         let files_dir = batch_dir.join("files");
         fs::create_dir_all(&files_dir)?;
 
@@ -172,6 +177,39 @@ impl BackupManager {
                     .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "无备份批次"))
             }
         }
+    }
+
+    /// 原子占位一个新的批次目录，返回 `(批次 ID, 目录路径)`。
+    ///
+    /// 时间戳只有毫秒精度，同一毫秒内的两次备份会算出同一个 ID。若直接用
+    /// `create_dir_all`，第二次备份会落进第一次的目录并覆盖它的 manifest 与
+    /// 文件——前一次备份静默消失，「写入前备份、可回滚」这条安全契约就破了。
+    ///
+    /// 这里改用 `create_dir`：目录已存在时返回 `AlreadyExists`（原子判定，
+    /// 跨进程也成立），于是退避到 `-01`、`-02`… 后缀。后缀补零以保证字符串
+    /// 排序仍等于创建顺序（[`Self::list_batches`] 依赖这一点）。
+    ///
+    /// 连续 100 次都撞车则返回错误，而不是退化成覆盖——宁可失败也不静默丢备份。
+    fn claim_batch_dir(&self) -> std::io::Result<(String, PathBuf)> {
+        fs::create_dir_all(&self.root)?;
+        let base = Self::timestamp();
+        for attempt in 0..=MAX_BATCH_ID_RETRIES {
+            let batch_id = if attempt == 0 {
+                base.clone()
+            } else {
+                format!("{base}-{attempt:02}")
+            };
+            let dir = self.root.join(&batch_id);
+            match fs::create_dir(&dir) {
+                Ok(()) => return Ok((batch_id, dir)),
+                Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
+                Err(e) => return Err(e),
+            }
+        }
+        Err(std::io::Error::new(
+            std::io::ErrorKind::AlreadyExists,
+            format!("无法为备份批次分配唯一 ID：同一毫秒内出现过多批次（{base}）"),
+        ))
     }
 
     fn timestamp() -> String {
@@ -302,7 +340,8 @@ mod tests {
         fs::write(&target, "v1").unwrap();
         let mgr = BackupManager::new(&root);
 
-        // 手动创建两个批次（时间戳不同）
+        // 两次备份可能落在同一毫秒，因此这里断言的是「顺序」而不是「ID 必然不同」：
+        // claim_batch_dir 保证 ID 唯一且其字符串序等于创建序。
         let b1 = mgr
             .create_batch(std::slice::from_ref(&target))
             .unwrap()
@@ -317,6 +356,51 @@ mod tests {
         assert_eq!(batches.len(), 2);
         assert_eq!(batches[0], b2); // 最新在前
         assert_eq!(batches[1], b1);
+
+        fs::remove_dir_all(&root).unwrap();
+    }
+
+    /// 同一毫秒内的连续备份必须各自独立，否则前一次备份会被静默覆盖。
+    ///
+    /// 这个测试在 CI 上暴露过真问题：旧实现用 `create_dir_all` + 毫秒时间戳，
+    /// 同毫秒的第二次备份直接复用第一次的目录，`list_batches` 只数得到 1 个批次。
+    #[test]
+    fn rapid_batches_never_collide() {
+        let root = test_dir("collide");
+        let target = root.join("AGENTS.md");
+        let mgr = BackupManager::new(&root);
+
+        let mut ids = Vec::new();
+        for i in 0..5 {
+            fs::write(&target, format!("v{i}")).unwrap();
+            ids.push(
+                mgr.create_batch(std::slice::from_ref(&target))
+                    .unwrap()
+                    .unwrap(),
+            );
+        }
+
+        let mut unique = ids.clone();
+        unique.sort();
+        unique.dedup();
+        assert_eq!(
+            unique.len(),
+            ids.len(),
+            "批次 ID 重复 => 前一次备份被覆盖: {ids:?}"
+        );
+
+        // 每个批次都有独立目录与 manifest，且全部能被列出
+        for id in &ids {
+            let dir = root.join(BACKUP_DIR_NAME).join(id);
+            assert!(dir.join("manifest.json").exists(), "批次 {id} 缺 manifest");
+        }
+        assert_eq!(mgr.list_batches().unwrap().len(), ids.len());
+
+        // 每个批次的 manifest 都必须是它自己那次的内容（未被后续覆盖）
+        for id in &ids {
+            let manifest = mgr.read_manifest(id).unwrap();
+            assert_eq!(&manifest.batch_id, id);
+        }
 
         fs::remove_dir_all(&root).unwrap();
     }
