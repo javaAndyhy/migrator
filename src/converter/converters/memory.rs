@@ -127,7 +127,11 @@ fn build_entry(
     }
 
     // 代码围栏: 用更长的围栏包裹防格式破坏
-    let fence = if preview.contains("```") { "````" } else { "```" };
+    let fence = if preview.contains("```") {
+        "````"
+    } else {
+        "```"
+    };
     let _ = fence; // 围栏长度在渲染处决定
 
     MemoryIndexEntry {

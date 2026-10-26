@@ -37,7 +37,12 @@ pub struct ReportRow {
 }
 
 impl ReportRow {
-    pub fn new(scope: impl Into<String>, status: ReportStatus, item: impl Into<String>, notes: impl Into<String>) -> Self {
+    pub fn new(
+        scope: impl Into<String>,
+        status: ReportStatus,
+        item: impl Into<String>,
+        notes: impl Into<String>,
+    ) -> Self {
         Self {
             scope: scope.into(),
             status,

@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "source": "doubao",
+  "target": "claude",
+  "entries": [
+    {
+      "source": "instructions",
+      "target": "CLAUDE.md",
+      "behavior": "convert",
+      "caveat": "manual bundle instructions.md copied verbatim (produced by a previous doubao migration)",
+      "status": "exact"
+    },
+    {
+      "source": "mcp",
+      "target": ".mcp.json",
+      "behavior": "merge",
+      "caveat": "manual bundle connectors.json -> mcpServers; merged preserving existing servers",
+      "status": "partial"
+    },
+    {
+      "source": "skills",
+      "target": "skills",
+      "behavior": "convert",
+      "caveat": "SKILL.md format compatible; frontmatter may need review",
+      "status": "partial"
+    },
+    {
+      "source": "agents",
+      "target": "agents",
+      "behavior": "convert",
+      "caveat": "manual bundle agents/*.md -> Claude subagent (md frontmatter compatible)",
+      "status": "partial"
+    },
+    {
+      "source": "commands",
+      "target": "",
+      "behavior": "report-only",
+      "caveat": "doubao has no slash-command concept",
+      "status": "unsupported"
+    },
+    {
+      "source": "hooks",
+      "target": "",
+      "behavior": "report-only",
+      "caveat": "doubao has no hooks.json equivalent",
+      "status": "unsupported"
+    },
+    {
+      "source": "memory",
+      "target": "",
+      "behavior": "report-only",
+      "caveat": "doubao has no memory index consumer",
+      "status": "unsupported"
+    }
+  ]
+}

@@ -2,9 +2,9 @@
 name = "migrator"
 version = "0.2.0"
 edition = "2024"
-description = "Multi-target agent configuration migrator: Claude Code / Codex -> Qoder / Trae / Lingma etc."
+description = "Multi-target agent configuration migrator: Claude Code / Codex -> Qoder / Trae / Lingma (Qoder CN) / WorkBuddy / dsh (DeepSeek Harness) / Doubao (manual bundle)"
 license = "MIT"
-keywords = ["ai-agent", "migration", "claude-code", "codex", "mcp", "qoder"]
+keywords = ["ai-agent", "migration", "claude-code", "codex", "mcp", "qoder", "trae", "lingma", "workbuddy"]
 categories = ["command-line-utilities", "development-tools"]
 repository = "https://github.com/javaAndyhy/migrator"
 
@@ -14,6 +14,13 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 anyhow = "1"
 thiserror = "2"
+# TOML 处理: toml 做结构化解析（Codex config.toml → JSON）
+# toml_edit 做格式保留编辑（[mcp_servers] 段级合并时保留注释与其余段）
+toml = "0.8"
+toml_edit = "0.22"
+# YAML 处理: 读取 dsh 的 cordis patch（写入仍走"注释托管块 + 字符串拼接"，
+# 避免解析再序列化摧毁用户手写注释与 !!js 表达式）
+serde_yaml = "0.9"
 
 [profile.release]
 strip = true

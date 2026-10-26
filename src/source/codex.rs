@@ -131,6 +131,14 @@ impl SourceAdapter for CodexSource {
             has_memory,
         ));
 
+        // hooks: ~/.codex/hooks.json（用户实测存在；迁移时 hooks 无目标等价物 → 仅报告）
+        let hooks_json = self.user_dir.join("hooks.json");
+        surfaces.push(ConfigSurface::new(
+            SurfaceKind::Hooks,
+            "~/.codex/hooks.json",
+            hooks_json.exists(),
+        ));
+
         surfaces
     }
 
@@ -148,6 +156,7 @@ impl SourceAdapter for CodexSource {
                 self.user_dir.join(rel)
             }
             SurfaceKind::Memory => self.user_dir.join("memories"),
+            SurfaceKind::Hooks => self.user_dir.join("hooks.json"),
             _ => return None,
         };
         if !path.exists() {
@@ -196,7 +205,8 @@ mod tests {
     use std::fs;
 
     fn temp_dir(name: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("migrator-codex-{name}-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("migrator-codex-{name}-{}", std::process::id()));
         fs::create_dir_all(&dir).unwrap();
         dir
     }
@@ -216,7 +226,10 @@ mod tests {
             .find(|s| s.kind == SurfaceKind::Instructions)
             .unwrap();
         assert!(instructions.present);
-        let mcp = surfaces.iter().find(|s| s.kind == SurfaceKind::Mcp).unwrap();
+        let mcp = surfaces
+            .iter()
+            .find(|s| s.kind == SurfaceKind::Mcp)
+            .unwrap();
         assert!(mcp.present);
         fs::remove_dir_all(&dir).unwrap();
     }
@@ -237,6 +250,27 @@ mod tests {
             .collect();
         assert_eq!(agents.len(), 1);
         assert!(agents[0].source_path.contains("mtkf-coder.toml"));
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn scan_detects_hooks_json() {
+        let dir = temp_dir("hooks");
+        let codex = dir.join(".codex");
+        fs::create_dir_all(&codex).unwrap();
+        fs::write(codex.join("hooks.json"), "{\"hooks\":[]}").unwrap();
+
+        let src = CodexSource::new(&codex);
+        let surfaces = src.scan();
+        let hooks = surfaces
+            .iter()
+            .find(|s| s.kind == SurfaceKind::Hooks)
+            .unwrap();
+        assert!(hooks.present);
+        assert!(hooks.source_path.contains("hooks.json"));
+        // hooks 内容可读
+        let content = src.read(hooks).unwrap();
+        assert!(content.contains("hooks"));
         fs::remove_dir_all(&dir).unwrap();
     }
 

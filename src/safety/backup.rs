@@ -216,9 +216,7 @@ mod tests {
     fn no_existing_files_returns_none() {
         let root = test_dir("empty");
         let mgr = BackupManager::new(&root);
-        let batch = mgr
-            .create_batch(&[root.join("missing.md")])
-            .unwrap();
+        let batch = mgr.create_batch(&[root.join("missing.md")]).unwrap();
         assert!(batch.is_none());
         fs::remove_dir_all(&root).unwrap();
     }
@@ -230,7 +228,10 @@ mod tests {
         fs::write(&target, "original").unwrap();
 
         let mgr = BackupManager::new(&root);
-        let batch = mgr.create_batch(&[target.clone()]).unwrap().unwrap();
+        let batch = mgr
+            .create_batch(std::slice::from_ref(&target))
+            .unwrap()
+            .unwrap();
 
         // 修改目标文件（模拟 apply 覆盖）
         fs::write(&target, "modified").unwrap();
@@ -250,7 +251,7 @@ mod tests {
         let target = root.join("AGENTS.md");
         fs::write(&target, "v1").unwrap();
         let mgr = BackupManager::new(&root);
-        mgr.create_batch(&[target.clone()]).unwrap();
+        mgr.create_batch(std::slice::from_ref(&target)).unwrap();
 
         fs::write(&target, "v2").unwrap();
         let restored = mgr.restore(None).unwrap();
@@ -266,7 +267,7 @@ mod tests {
         let target = root.join("AGENTS.md");
         fs::write(&target, "v1").unwrap();
         let mgr = BackupManager::new(&root);
-        mgr.create_batch(&[target.clone()]).unwrap();
+        mgr.create_batch(std::slice::from_ref(&target)).unwrap();
 
         fs::write(&target, "v2").unwrap();
         let plan = mgr.plan_restore(None).unwrap();
@@ -283,7 +284,7 @@ mod tests {
         let target = root.join("AGENTS.md");
         fs::write(&target, "v1").unwrap();
         let mgr = BackupManager::new(&root);
-        mgr.create_batch(&[target.clone()]).unwrap();
+        mgr.create_batch(std::slice::from_ref(&target)).unwrap();
 
         let removed = mgr.clean().unwrap();
         assert_eq!(removed.len(), 1);
@@ -302,9 +303,15 @@ mod tests {
         let mgr = BackupManager::new(&root);
 
         // 手动创建两个批次（时间戳不同）
-        let b1 = mgr.create_batch(&[target.clone()]).unwrap().unwrap();
+        let b1 = mgr
+            .create_batch(std::slice::from_ref(&target))
+            .unwrap()
+            .unwrap();
         fs::write(&target, "v2").unwrap();
-        let b2 = mgr.create_batch(&[target.clone()]).unwrap().unwrap();
+        let b2 = mgr
+            .create_batch(std::slice::from_ref(&target))
+            .unwrap()
+            .unwrap();
 
         let batches = mgr.list_batches().unwrap();
         assert_eq!(batches.len(), 2);

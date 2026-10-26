@@ -145,6 +145,47 @@ impl SourceAdapter for ClaudeCodeSource {
             has_memory,
         ));
 
+        // hooks: 项目级 .claude/hooks/hooks.json（无目标等价物 → 仅报告）
+        let hooks_json = self.project_dir.join("hooks").join("hooks.json");
+        surfaces.push(ConfigSurface::new(
+            SurfaceKind::Hooks,
+            ".claude/hooks/hooks.json",
+            hooks_json.exists(),
+        ));
+
+        // commands: 项目级 .claude/commands/*.md（slash 命令 → 单文件 skill）
+        let commands_dir = self.project_dir.join("commands");
+        if commands_dir.is_dir() {
+            if let Ok(entries) = std::fs::read_dir(&commands_dir) {
+                let mut found_any = false;
+                for entry in entries.flatten() {
+                    let p = entry.path();
+                    if p.is_file() && p.extension().is_some_and(|e| e == "md") {
+                        let name = p.file_name().unwrap().to_string_lossy().to_string();
+                        surfaces.push(ConfigSurface::new(
+                            SurfaceKind::Commands,
+                            format!(".claude/commands/{name}"),
+                            true,
+                        ));
+                        found_any = true;
+                    }
+                }
+                if !found_any {
+                    surfaces.push(ConfigSurface::new(
+                        SurfaceKind::Commands,
+                        ".claude/commands/",
+                        false,
+                    ));
+                }
+            }
+        } else {
+            surfaces.push(ConfigSurface::new(
+                SurfaceKind::Commands,
+                ".claude/commands/",
+                false,
+            ));
+        }
+
         surfaces
     }
 
@@ -168,7 +209,12 @@ impl SourceAdapter for ClaudeCodeSource {
                 self.project_dir.join(rel)
             }
             SurfaceKind::Memory => self.user_dir.join("memory"),
-            _ => return None,
+            SurfaceKind::Hooks => self.project_dir.join("hooks").join("hooks.json"),
+            SurfaceKind::Commands => {
+                // source_path 形如 .claude/commands/<name>.md
+                let rel = surface.source_path.trim_start_matches(".claude/");
+                self.project_dir.join(rel)
+            }
         };
         if !path.exists() {
             return None;
@@ -217,7 +263,8 @@ mod tests {
     use std::fs;
 
     fn temp_dir(name: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("migrator-src-{}-{}", name, std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("migrator-src-{}-{}", name, std::process::id()));
         fs::create_dir_all(&dir).unwrap();
         dir
     }
@@ -246,6 +293,40 @@ mod tests {
         let src = ClaudeCodeSource::new(dir.join("home").join(".claude"), dir.join(".claude"));
         let surfaces = src.scan();
         assert!(surfaces.iter().all(|s| !s.present));
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn scan_detects_hooks_and_commands() {
+        let dir = temp_dir("hooks-cmds");
+        let claude_dir = dir.join(".claude");
+        fs::create_dir_all(claude_dir.join("hooks")).unwrap();
+        fs::create_dir_all(claude_dir.join("commands")).unwrap();
+        fs::write(claude_dir.join("hooks/hooks.json"), "{\"hooks\":[]}").unwrap();
+        fs::write(
+            claude_dir.join("commands/review.md"),
+            "---\ndescription: 审查代码\n---\nReview the code.\n",
+        )
+        .unwrap();
+
+        let src = ClaudeCodeSource::new(dir.join("home").join(".claude"), claude_dir);
+        let surfaces = src.scan();
+        let hooks = surfaces
+            .iter()
+            .find(|s| s.kind == SurfaceKind::Hooks)
+            .unwrap();
+        assert!(hooks.present);
+        assert!(hooks.source_path.contains("hooks.json"));
+        let commands: Vec<&ConfigSurface> = surfaces
+            .iter()
+            .filter(|s| s.kind == SurfaceKind::Commands)
+            .collect();
+        assert_eq!(commands.len(), 1);
+        assert!(commands[0].source_path.contains("review.md"));
+        // hooks 内容可读
+        assert!(src.read(hooks).unwrap().contains("hooks"));
+        // command 内容可读
+        assert!(src.read(commands[0]).unwrap().contains("Review the code."));
         fs::remove_dir_all(&dir).unwrap();
     }
 

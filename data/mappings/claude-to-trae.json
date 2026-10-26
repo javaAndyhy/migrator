@@ -13,9 +13,9 @@
     {
       "source": "mcp",
       "target": "mcp.json",
-      "behavior": "copy",
-      "caveat": null,
-      "status": "exact"
+      "behavior": "merge",
+      "caveat": "Claude .mcp.json compatible; merged preserving existing servers",
+      "status": "partial"
     },
     {
       "source": "skills",

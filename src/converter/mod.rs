@@ -8,4 +8,4 @@ pub mod converters;
 pub mod manual_block;
 pub mod mapping;
 
-pub use mapping::{ConversionResult, MappingEntry, MappingTable, MappingStatus};
+pub use mapping::{ConversionResult, MappingEntry, MappingStatus, MappingTable};

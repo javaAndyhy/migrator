@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "source": "dsh",
+  "target": "codex",
+  "entries": [
+    {
+      "source": "instructions",
+      "target": "AGENTS.md",
+      "behavior": "convert",
+      "caveat": "dsh user-level ~/.dsh/AGENTS.md -> ~/.codex/AGENTS.md (both user-global)",
+      "status": "exact"
+    },
+    {
+      "source": "mcp",
+      "target": "config.toml",
+      "behavior": "convert",
+      "caveat": "cordis patch plugin entries -> [mcp_servers] TOML (approx; !!js expressions become {env:VAR} refs, review)",
+      "status": "partial"
+    },
+    {
+      "source": "skills",
+      "target": "skills",
+      "behavior": "convert",
+      "caveat": "SKILL.md format compatible; frontmatter may need review",
+      "status": "partial"
+    },
+    {
+      "source": "agents",
+      "target": "",
+      "behavior": "report-only",
+      "caveat": "dsh has no file-based agents (preset driven)",
+      "status": "unsupported"
+    },
+    {
+      "source": "commands",
+      "target": "",
+      "behavior": "report-only",
+      "caveat": "dsh has no slash-command files",
+      "status": "unsupported"
+    },
+    {
+      "source": "hooks",
+      "target": "",
+      "behavior": "report-only",
+      "caveat": "dsh has no hooks.json equivalent",
+      "status": "unsupported"
+    },
+    {
+      "source": "memory",
+      "target": "",
+      "behavior": "report-only",
+      "caveat": "dsh has no memory index consumer",
+      "status": "unsupported"
+    }
+  ]
+}

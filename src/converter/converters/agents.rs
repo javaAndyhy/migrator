@@ -30,7 +30,8 @@ pub fn convert_agent(source_content: &str) -> (String, bool, Vec<String>) {
     let mut model: Option<String> = None;
 
     // 判断输入格式: TOML (name = "...") vs YAML frontmatter (---\nname: ...)
-    let is_toml = source_content.contains("name =") && !source_content.trim_start().starts_with("---");
+    let is_toml =
+        source_content.contains("name =") && !source_content.trim_start().starts_with("---");
 
     if is_toml {
         // TOML 格式: 逐行解析顶层 key = value
@@ -95,10 +96,8 @@ pub fn convert_agent(source_content: &str) -> (String, bool, Vec<String>) {
                     if let Some(item) = t.strip_prefix('-') {
                         tools_list.push(item.trim().to_string());
                     }
-                } else if in_disallowed {
-                    if let Some(item) = t.strip_prefix('-') {
-                        disallowed_list.push(item.trim().to_string());
-                    }
+                } else if in_disallowed && let Some(item) = t.strip_prefix('-') {
+                    disallowed_list.push(item.trim().to_string());
                 }
             }
             if !tools_list.is_empty() {
@@ -138,7 +137,11 @@ pub fn convert_agent(source_content: &str) -> (String, bool, Vec<String>) {
     let body_text = if is_toml {
         extract_toml_instructions(source_content)
     } else {
-        split_agent_frontmatter(source_content).1.unwrap_or("").trim().to_string()
+        split_agent_frontmatter(source_content)
+            .1
+            .unwrap_or("")
+            .trim()
+            .to_string()
     };
     if !body_text.is_empty() {
         out.push_str(&body_text);
@@ -165,7 +168,7 @@ pub fn convert_agent(source_content: &str) -> (String, bool, Vec<String>) {
             caveats.join("\n- ")
         );
         out.push('\n');
-        out.push_str(&manual_block(&reason.to_string(), &guidance));
+        out.push_str(&manual_block(reason, &guidance));
         for c in caveats {
             manual_notes.push(c.to_string());
         }
@@ -177,6 +180,78 @@ pub fn convert_agent(source_content: &str) -> (String, bool, Vec<String>) {
 /// 拆分 agent frontmatter（同 SKILL.md 格式）
 fn split_agent_frontmatter(content: &str) -> (Option<&str>, Option<&str>) {
     crate::converter::converters::skills::split_frontmatter(content)
+}
+
+/// 反向转换：md frontmatter（Qoder/灵码/Claude agent）→ Codex TOML
+///
+/// frontmatter: name/description/tools(逗号分隔或列表) → TOML:
+///   name = "..." / description = "..." / tools = ["Read", "Bash"]
+/// 正文 → developer_instructions = """..."""
+pub fn convert_agent_to_toml(source_content: &str) -> (String, bool, Vec<String>) {
+    let mut manual_notes = Vec::new();
+
+    let mut name = String::new();
+    let mut description = String::new();
+    let mut tools: Vec<String> = Vec::new();
+
+    let (frontmatter, body) = split_agent_frontmatter(source_content);
+    if let Some(fm) = frontmatter {
+        let mut in_tools_list = false;
+        for line in fm.lines() {
+            let t = line.trim_start();
+            if let Some(v) = t.strip_prefix("name:") {
+                name = v.trim().to_string();
+            } else if let Some(v) = t.strip_prefix("description:") {
+                description = v.trim().to_string();
+            } else if let Some(v) = t.strip_prefix("tools:") {
+                let v = v.trim();
+                if v.starts_with('-') {
+                    tools.push(v.trim_start_matches('-').trim().to_string());
+                } else {
+                    tools.extend(
+                        v.split(',')
+                            .map(|s| s.trim().to_string())
+                            .filter(|s| !s.is_empty()),
+                    );
+                }
+                in_tools_list = true;
+            } else if in_tools_list && t.starts_with('-') {
+                tools.push(t.trim_start_matches('-').trim().to_string());
+            } else if in_tools_list && !t.is_empty() && !t.starts_with('-') {
+                in_tools_list = false;
+            }
+        }
+    }
+    let body_text = body.unwrap_or("").trim().to_string();
+
+    if name.is_empty() {
+        name = "agent".to_string();
+        manual_notes.push("name missing, defaulted to 'agent'; review".into());
+    }
+
+    let mut out = String::new();
+    out.push_str(&format!("name = \"{}\"\n", name.replace('"', "\\\"")));
+    if !description.is_empty() {
+        out.push_str(&format!(
+            "description = \"{}\"\n",
+            description.replace('"', "\\\"")
+        ));
+    }
+    if !tools.is_empty() {
+        let items: Vec<String> = tools.iter().map(|t| format!("\"{}\"", t)).collect();
+        out.push_str(&format!("tools = [{}]\n", items.join(", ")));
+    }
+    if !body_text.is_empty() {
+        out.push_str("developer_instructions = \"\"\"\n");
+        out.push_str(&body_text);
+        out.push_str("\n\"\"\"\n");
+    }
+
+    manual_notes
+        .push("agent converted md frontmatter -> Codex TOML; sandbox semantics defaulted".into());
+    let needs_review = true;
+
+    (out, needs_review, manual_notes)
 }
 
 /// 提取 TOML 格式的 developer_instructions（三引号块）
