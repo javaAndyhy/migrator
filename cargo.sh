@@ -3,8 +3,9 @@
 #
 # 问题: WorkBuddy 沙箱的 safe-delete 拦截 target/debug/.cargo-build-lock 的删除，
 #       导致同一 target 目录第二次构建失败 (os error 5)。
-# 方案: 每次构建使用新的 target 目录 (target-build-<N>)，依赖会全量重编 (约 9 分钟)。
-#       若需要复用增量缓存，可手动指定 --target-dir 指向未被污染的目录。
+# 方案 A（推荐，快）: 用项目外 target 目录（沙箱不拦），增量编译仅数秒：
+#   MIGRATOR_TARGET_DIR=/tmp/migrator-target ./cargo.sh build
+# 方案 B（默认）: 每次构建使用新的 target 目录 (target-build-<N>)，依赖会全量重编 (约 8-9 分钟)。
 
 set -euo pipefail
 
@@ -29,7 +30,11 @@ next_target_dir() {
   done
 }
 
-TARGET_DIR="$(next_target_dir)"
+if [ -n "${MIGRATOR_TARGET_DIR:-}" ]; then
+  TARGET_DIR="${MIGRATOR_TARGET_DIR}"
+else
+  TARGET_DIR="$(next_target_dir)"
+fi
 export CARGO_TARGET_DIR="${TARGET_DIR}"
 
 echo "[migrator-cargo] target dir: ${TARGET_DIR}"

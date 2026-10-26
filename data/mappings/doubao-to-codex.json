@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "source": "doubao",
+  "target": "codex",
+  "entries": [
+    {
+      "source": "instructions",
+      "target": "AGENTS.md",
+      "behavior": "convert",
+      "caveat": "manual bundle instructions.md copied verbatim (md-compatible)",
+      "status": "exact"
+    },
+    {
+      "source": "mcp",
+      "target": "config.toml",
+      "behavior": "convert",
+      "caveat": "manual bundle connectors.json -> [mcp_servers] TOML (approx, review)",
+      "status": "partial"
+    },
+    {
+      "source": "skills",
+      "target": "skills",
+      "behavior": "convert",
+      "caveat": "SKILL.md format compatible; frontmatter may need review",
+      "status": "partial"
+    },
+    {
+      "source": "agents",
+      "target": "agents",
+      "behavior": "convert",
+      "caveat": "manual bundle agents/*.md -> Codex TOML (approx, review)",
+      "status": "partial"
+    },
+    {
+      "source": "commands",
+      "target": "",
+      "behavior": "report-only",
+      "caveat": "doubao has no slash-command concept",
+      "status": "unsupported"
+    },
+    {
+      "source": "hooks",
+      "target": "",
+      "behavior": "report-only",
+      "caveat": "doubao has no hooks.json equivalent",
+      "status": "unsupported"
+    },
+    {
+      "source": "memory",
+      "target": "",
+      "behavior": "report-only",
+      "caveat": "doubao has no memory index consumer",
+      "status": "unsupported"
+    }
+  ]
+}

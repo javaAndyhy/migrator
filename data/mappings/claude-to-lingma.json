@@ -5,10 +5,10 @@
   "entries": [
     {
       "source": "instructions",
-      "target": "LINGMA.md",
+      "target": "AGENTS.md",
       "behavior": "convert",
-      "caveat": null,
-      "status": "exact"
+      "caveat": "Qoder CN (renamed from Lingma) reads project-root AGENTS.md; IDE rules live in .lingma/rules/",
+      "status": "partial"
     },
     {
       "source": "mcp",

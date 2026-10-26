@@ -22,9 +22,11 @@ pub(crate) fn collect_skill_subdirs(skill_root: &Path) -> Vec<PathBuf> {
 
 pub mod claude;
 pub mod codex;
+pub mod layout_source;
 
 pub use claude::ClaudeCodeSource;
 pub use codex::CodexSource;
+pub use layout_source::LayoutSource;
 
 /// 源适配器接口
 pub trait SourceAdapter {

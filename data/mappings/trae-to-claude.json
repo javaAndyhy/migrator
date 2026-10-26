@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "source": "trae",
+  "target": "claude",
+  "entries": [
+    {
+      "source": "instructions",
+      "target": "CLAUDE.md",
+      "behavior": "convert",
+      "caveat": "rules copied verbatim (md-compatible)",
+      "status": "exact"
+    },
+    {
+      "source": "mcp",
+      "target": ".mcp.json",
+      "behavior": "merge",
+      "caveat": "JSON mcpServers compatible; merged preserving existing servers",
+      "status": "partial"
+    },
+    {
+      "source": "skills",
+      "target": "skills",
+      "behavior": "convert",
+      "caveat": "skill frontmatter may need review",
+      "status": "partial"
+    },
+    {
+      "source": "agents",
+      "target": "agents",
+      "behavior": "convert",
+      "caveat": "md frontmatter compatible (Claude subagent)",
+      "status": "partial"
+    },
+    {
+      "source": "commands",
+      "target": "",
+      "behavior": "report-only",
+      "caveat": "domestic platforms have no slash-command concept",
+      "status": "unsupported"
+    },
+    {
+      "source": "hooks",
+      "target": "",
+      "behavior": "report-only",
+      "caveat": "domestic platforms have no hooks.json equivalent",
+      "status": "unsupported"
+    },
+    {
+      "source": "memory",
+      "target": "",
+      "behavior": "report-only",
+      "caveat": "domestic platforms have no memory index consumer",
+      "status": "unsupported"
+    }
+  ]
+}

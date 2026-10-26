@@ -13,8 +13,8 @@
     {
       "source": "mcp",
       "target": "mcp.json",
-      "behavior": "convert",
-      "caveat": "TOML [mcp_servers] to JSON mcpServers; nested env merged",
+      "behavior": "merge",
+      "caveat": "TOML [mcp_servers] to JSON mcpServers; merged preserving existing servers",
       "status": "partial"
     },
     {

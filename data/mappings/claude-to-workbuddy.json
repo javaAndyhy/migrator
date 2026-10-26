@@ -6,15 +6,15 @@
     {
       "source": "instructions",
       "target": "MEMORY.md",
-      "behavior": "append-managed",
-      "caveat": "appended to user memory as managed block; review",
+      "behavior": "append-reference",
+      "caveat": "full rules copied to ~/.workbuddy/rules/; MEMORY.md keeps brief managed reference",
       "status": "partial"
     },
     {
       "source": "mcp",
-      "target": ".mcp.json",
-      "behavior": "copy",
-      "caveat": "Claude .mcp.json format compatible with WorkBuddy; merged preserving existing servers",
+      "target": "mcp.json",
+      "behavior": "merge",
+      "caveat": "Claude .mcp.json format compatible; merged into ~/.workbuddy/mcp.json preserving existing servers",
       "status": "partial"
     },
     {
@@ -40,10 +40,10 @@
     },
     {
       "source": "memory",
-      "target": "memory-index",
-      "behavior": "index",
-      "caveat": "read-only index generation",
-      "status": "partial"
+      "target": "",
+      "behavior": "report-only",
+      "caveat": "WorkBuddy has no read-only memory index consumer; memories stay on source side",
+      "status": "unsupported"
     },
     {
       "source": "commands",

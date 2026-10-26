@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "source": "claude-code",
+  "target": "doubao",
+  "entries": [
+    {
+      "source": "instructions",
+      "target": "instructions.md",
+      "behavior": "manual-paste",
+      "caveat": "Doubao desktop has no file-level config: paste .doubao/manual/instructions.md into the client's custom instructions",
+      "status": "partial"
+    },
+    {
+      "source": "mcp",
+      "target": "connectors.json",
+      "behavior": "manual-paste",
+      "caveat": "MCP lives in the client leveldb store: add each server of .doubao/manual/connectors.json via 插件 -> + 添加 -> 新建自定义连接器",
+      "status": "partial"
+    },
+    {
+      "source": "skills",
+      "target": "skills",
+      "behavior": "manual-paste",
+      "caveat": "Doubao skills are marketplace-only; copied files serve as reference / chat attachments",
+      "status": "partial"
+    },
+    {
+      "source": "commands",
+      "target": "skills",
+      "behavior": "manual-paste",
+      "caveat": "slash commands become one-file skills in the manual bundle",
+      "status": "partial"
+    },
+    {
+      "source": "agents",
+      "target": "agents",
+      "behavior": "manual-paste",
+      "caveat": "no importable agent format; paste persona text manually",
+      "status": "partial"
+    },
+    {
+      "source": "hooks",
+      "target": "",
+      "behavior": "report-only",
+      "caveat": "Doubao has no hooks contract",
+      "status": "unsupported"
+    },
+    {
+      "source": "memory",
+      "target": "",
+      "behavior": "report-only",
+      "caveat": "Doubao has no memory index consumer",
+      "status": "unsupported"
+    }
+  ]
+}

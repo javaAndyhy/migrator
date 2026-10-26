@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "source": "lingma",
+  "target": "codex",
+  "entries": [
+    {
+      "source": "instructions",
+      "target": "AGENTS.md",
+      "behavior": "convert",
+      "caveat": "rules copied verbatim (md-compatible)",
+      "status": "exact"
+    },
+    {
+      "source": "mcp",
+      "target": "config.toml",
+      "behavior": "convert",
+      "caveat": "JSON mcpServers -> [mcp_servers] TOML (approx, review)",
+      "status": "partial"
+    },
+    {
+      "source": "skills",
+      "target": "skills",
+      "behavior": "convert",
+      "caveat": "skill frontmatter may need review",
+      "status": "partial"
+    },
+    {
+      "source": "agents",
+      "target": "agents",
+      "behavior": "convert",
+      "caveat": "md frontmatter -> Codex TOML (approx, review)",
+      "status": "partial"
+    },
+    {
+      "source": "commands",
+      "target": "",
+      "behavior": "report-only",
+      "caveat": "domestic platforms have no slash-command concept",
+      "status": "unsupported"
+    },
+    {
+      "source": "hooks",
+      "target": "",
+      "behavior": "report-only",
+      "caveat": "domestic platforms have no hooks.json equivalent",
+      "status": "unsupported"
+    },
+    {
+      "source": "memory",
+      "target": "",
+      "behavior": "report-only",
+      "caveat": "domestic platforms have no memory index consumer",
+      "status": "unsupported"
+    }
+  ]
+}

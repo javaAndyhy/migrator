@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "source": "claude-code",
+  "target": "dsh",
+  "entries": [
+    {
+      "source": "instructions",
+      "target": "AGENTS.md",
+      "behavior": "convert",
+      "caveat": "written to user-level ~/.dsh/AGENTS.md (dsh loads it before any project AGENTS.md); managed block protects hand-written rules",
+      "status": "partial"
+    },
+    {
+      "source": "mcp",
+      "target": "cordis.patch.yml",
+      "behavior": "merge",
+      "caveat": "dsh has no JSON MCP file: converted to cordis patch plugin entries (@deepseek-ai/dsh-mcp-client) in ~/.dsh/profiles/<profile>/cordis.patch.yml, merged via comment managed block",
+      "status": "partial"
+    },
+    {
+      "source": "skills",
+      "target": "skills",
+      "behavior": "convert",
+      "caveat": "written to ~/.dsh/skills; dsh requires kebab-case name + description frontmatter",
+      "status": "partial"
+    },
+    {
+      "source": "agents",
+      "target": "",
+      "behavior": "report-only",
+      "caveat": "dsh subagents are profile/preset driven; no file-based agents/*.md",
+      "status": "unsupported"
+    },
+    {
+      "source": "commands",
+      "target": "skills",
+      "behavior": "convert",
+      "caveat": "slash commands become one-file skills (dsh skills are user-invocable)",
+      "status": "partial"
+    },
+    {
+      "source": "hooks",
+      "target": "",
+      "behavior": "report-only",
+      "caveat": "dsh has no hooks.json contract",
+      "status": "unsupported"
+    },
+    {
+      "source": "memory",
+      "target": "",
+      "behavior": "report-only",
+      "caveat": "dsh has no read-only memory index consumer; memories stay on source side",
+      "status": "unsupported"
+    }
+  ]
+}

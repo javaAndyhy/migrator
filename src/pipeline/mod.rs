@@ -5,4 +5,7 @@
 
 pub mod pipeline;
 
-pub use pipeline::{dry_run_migration, plan_migration, run_migration, scan_sources, validate_target};
+pub use pipeline::{
+    dry_run_migration, plan_migration, run_migration, scan_sources, validate_target,
+    workbuddy_rules_path,
+};

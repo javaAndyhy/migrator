@@ -2,3 +2,12 @@
 /target-*
 /data/mappings/*.json.tmp
 *.log
+
+# 迁移运行时产物（工具自己生成的备份批次 / 手动粘贴包 / 沙箱 e2e 目录）
+/.migrator-backups/
+/.doubao/
+/tmp-e2e/
+/tmp-claude-demo/
+
+# 本地工作记忆（含个人背景细节，不进公开仓库）
+/.workbuddy/
